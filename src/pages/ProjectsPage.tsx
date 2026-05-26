@@ -1,13 +1,17 @@
 import { useContext, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SparklesIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { AppContext } from '../contexts/AppContext';
+import { ApiError } from '../api/client';
 import type { Project } from '../types';
 
 const ProjectsPage = () => {
   const ctx = useContext(AppContext);
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: '',
     deadline: '',
@@ -31,29 +35,55 @@ const ProjectsPage = () => {
     setEditId(null);
   };
 
-  const handleSubmit = () => {
-    if (!form.name.trim()) return;
-    const stack = form.stack.split(',').map((s) => s.trim()).filter(Boolean);
-    if (editId) {
-      updateProject(editId, {
-        name: form.name.trim(),
-        deadline: form.deadline || new Date().toISOString().slice(0, 10),
-        stack,
-        priority: form.priority,
-        visibility: form.visibility,
-      });
-      showToast('Project updated');
-    } else {
-      createProject({
-        name: form.name.trim(),
-        deadline: form.deadline || new Date().toISOString().slice(0, 10),
-        stack,
-        priority: form.priority,
-        visibility: form.visibility,
-      });
-      showToast('Project created');
+  const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      showToast('Enter a project name');
+      return;
     }
-    resetForm();
+    if (!activeWorkspace) {
+      showToast('No workspace selected');
+      return;
+    }
+
+    const stack = form.stack.split(',').map((s) => s.trim()).filter(Boolean);
+    setSubmitting(true);
+    try {
+      if (editId) {
+        await updateProject(editId, {
+          name: form.name.trim(),
+          deadline: form.deadline || new Date().toISOString().slice(0, 10),
+          stack,
+          priority: form.priority,
+          visibility: form.visibility,
+        });
+        showToast('Project updated');
+        resetForm();
+      } else {
+        const project = await createProject({
+          name: form.name.trim(),
+          deadline: form.deadline || new Date().toISOString().slice(0, 10),
+          stack,
+          priority: form.priority,
+          visibility: form.visibility,
+        });
+        showToast(`Project "${project?.name}" created`);
+        resetForm();
+        navigate('/board');
+      }
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Failed to save project');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (projectId: string) => {
+    try {
+      await deleteProject(projectId);
+      showToast('Project deleted');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Failed to delete project');
+    }
   };
 
   const startEdit = (p: Project) => {
@@ -81,8 +111,8 @@ const ProjectsPage = () => {
           <div>
             <div className="overline">Project Management</div>
             <h1 style={{ margin: '8px 0' }}>Projects</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>
-              {workspaceProjects.length} active projects · Collaboration score {activeWorkspace?.settings.collaborationScore}%
+            <p className="page-lead">
+              {workspaceProjects.length} active projects · Collaboration score {activeWorkspace?.settings.collaborationScore ?? 0}%
             </p>
           </div>
           <button className="glow-button" onClick={() => { resetForm(); setShowCreate(true); }}>
@@ -109,9 +139,21 @@ const ProjectsPage = () => {
             </select>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-            <button className="glow-button" onClick={handleSubmit}>{editId ? 'Save' : 'Create'}</button>
-            <button className="glow-button secondary" onClick={resetForm}>Cancel</button>
+            <button className="glow-button" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Saving…' : editId ? 'Save' : 'Create & open board'}
+            </button>
+            <button className="glow-button secondary" onClick={resetForm} disabled={submitting}>Cancel</button>
           </div>
+        </div>
+      )}
+
+      {workspaceProjects.length === 0 && !showCreate && (
+        <div className="glass card section" style={{ textAlign: 'center', padding: 40 }}>
+          <h2 style={{ margin: '0 0 8px' }}>No projects yet</h2>
+          <p className="page-lead" style={{ marginBottom: 20 }}>
+            Create your first project to add tasks, track progress, and collaborate with your team.
+          </p>
+          <button className="glow-button" onClick={() => setShowCreate(true)}>Create your first project</button>
         </div>
       )}
 
@@ -174,13 +216,20 @@ const ProjectsPage = () => {
                   </div>
 
                   <div className="project-card-actions">
-                    <button className="glow-button secondary" style={{ padding: '8px 14px', fontSize: '0.82rem' }} onClick={() => setQuickActionModal('task')}>
+                    <Link to="/board" className="glow-button secondary" style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
+                      Open board
+                    </Link>
+                    <button
+                      className="glow-button secondary"
+                      style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                      onClick={() => setQuickActionModal('task', p.id)}
+                    >
                       Add task
                     </button>
                     <button className="icon-button" onClick={() => startEdit(p)} title="Edit">
                       <PencilIcon width={16} />
                     </button>
-                    <button className="icon-button" onClick={() => { deleteProject(p.id); showToast('Project deleted'); }} title="Delete" style={{ color: '#fca5a5' }}>
+                    <button className="icon-button danger" onClick={() => handleDelete(p.id)} title="Delete">
                       <TrashIcon width={16} />
                     </button>
                   </div>

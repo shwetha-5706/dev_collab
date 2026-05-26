@@ -9,6 +9,7 @@ import {
   SunIcon,
 } from '@heroicons/react/24/outline';
 import { AppContext } from '../../contexts/AppContext';
+import UserAvatar from '../UserAvatar';
 
 const TopNavbar = () => {
   const ctx = useContext(AppContext);
@@ -42,7 +43,7 @@ const TopNavbar = () => {
   return (
     <header className="top-navbar glass">
       <div className="workspace-switcher" onClick={() => setWorkspaceOpen(!workspaceOpen)}>
-        <span className="workspace-icon">{activeWorkspace?.icon}</span>
+        <UserAvatar name={activeWorkspace?.name ?? 'W'} size="sm" noBorder className="workspace-icon-avatar" />
         <span>{activeWorkspace?.name}</span>
         {workspaceOpen && (
           <div className="workspace-dropdown glass" onClick={(e) => e.stopPropagation()}>
@@ -55,10 +56,10 @@ const TopNavbar = () => {
                   setWorkspaceOpen(false);
                 }}
               >
-                <span>{ws.icon}</span>
+                <UserAvatar name={ws.name} size="sm" noBorder />
                 <div>
                   <strong>{ws.name}</strong>
-                  <div style={{ fontSize: '0.78rem', opacity: 0.7 }}>{ws.members.length} members</div>
+                  <div className="text-xs-muted">{ws.members.length} members</div>
                 </div>
               </div>
             ))}
@@ -82,7 +83,7 @@ const TopNavbar = () => {
                 <span className="small-badge">{result.type}</span>
                 <div>
                   <strong>{result.title}</strong>
-                  <div style={{ fontSize: '0.78rem', opacity: 0.7 }}>{result.subtitle}</div>
+                  <div className="text-xs-muted">{result.subtitle}</div>
                 </div>
               </div>
             ))}
@@ -115,20 +116,20 @@ const TopNavbar = () => {
 
         <div className="profile-dropdown-wrap">
           <button className="icon-button" onClick={() => setProfileOpen(!profileOpen)} style={{ padding: 4 }}>
-            <img src={auth.user?.avatar} alt="" className="avatar-pill" style={{ width: 32, height: 32, border: 'none' }} />
+            <UserAvatar name={auth.user?.name ?? 'User'} size="sm" noBorder />
           </button>
           {profileOpen && (
             <div className="profile-menu glass">
               <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-glass)' }}>
                 <strong>{auth.user?.name}</strong>
-                <div style={{ fontSize: '0.78rem', opacity: 0.7 }}>{auth.user?.email}</div>
+                <div className="text-xs-muted">{auth.user?.email}</div>
                 <div className="small-badge" style={{ marginTop: 8 }}>
-                  🔥 {auth.user?.streak} day streak
+                  {auth.user?.streak} day streak
                 </div>
               </div>
               {auth.user?.badges?.map((badge) => (
                 <div key={badge} className="small-badge" style={{ margin: '8px 12px 0' }}>
-                  🏆 {badge}
+                  {badge}
                 </div>
               ))}
               <Link to="/profile" className="profile-menu-item" onClick={() => setProfileOpen(false)}>
@@ -150,8 +151,7 @@ const TopNavbar = () => {
                 Appearance
               </button>
               <button
-                className="profile-menu-item"
-                style={{ color: '#fca5a5' }}
+                className="profile-menu-item danger"
                 onClick={() => {
                   signOut();
                   navigate('/');

@@ -38,7 +38,7 @@ const CalendarPage = () => {
       <div className="page-header glass section" style={{ padding: 24, borderRadius: 20 }}>
         <div className="overline">Calendar</div>
         <h1 style={{ margin: '8px 0' }}>Sprint Timeline & Deadlines</h1>
-        <p style={{ opacity: 0.75, margin: 0 }}>Track project milestones, sprints, and AI risk indicators</p>
+        <p className="page-lead">Track project milestones, sprints, and AI risk indicators</p>
       </div>
 
       <div className="grid-columns-2">
@@ -98,7 +98,7 @@ const CalendarPage = () => {
           })}
 
           <div className="ai-insight-box" style={{ marginTop: 20 }}>
-            ⚠️ AI deadline warning: Sync Engine deadline has high risk score (82%)
+            AI deadline warning: Sync Engine deadline has high risk score (82%)
           </div>
         </div>
       </div>

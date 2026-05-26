@@ -10,6 +10,7 @@ import {
 import { AppContext } from '../../contexts/AppContext';
 import TopNavbar from './TopNavbar';
 import Sidebar from './Sidebar';
+import BackendStatusBar from './BackendStatusBar';
 import Dashboard from '../../pages/Dashboard';
 import KanbanBoard from '../../pages/KanbanBoard';
 import ProjectsPage from '../../pages/ProjectsPage';
@@ -48,6 +49,7 @@ const Shell = () => {
 
   return (
     <div className={`page-shell ${themeClass}`}>
+      <BackendStatusBar />
       <TopNavbar />
       <div className="shell-body">
         <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} workspaceName={activeWorkspace?.name} />

@@ -1,18 +1,29 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../../contexts/AppContext';
+import { ApiError } from '../../api/client';
 
 const WorkspaceCreationModal = () => {
   const ctx = useContext(AppContext);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'Public' | 'Private'>('Private');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   if (!ctx?.auth.needsWorkspaceSetup) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    ctx.createWorkspace(name.trim(), description.trim() || 'My workspace', type);
+    setSubmitting(true);
+    setError('');
+    try {
+      await ctx.createWorkspace(name.trim(), description.trim() || 'My workspace', type);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to create workspace');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -20,9 +31,10 @@ const WorkspaceCreationModal = () => {
       <div className="modal-content glass" onClick={(e) => e.stopPropagation()}>
         <div className="overline">Welcome aboard</div>
         <h2 style={{ margin: '8px 0 12px' }}>Create your workspace</h2>
-        <p style={{ opacity: 0.75, marginBottom: 20, fontSize: '0.9rem' }}>
+        <p className="page-lead" style={{ marginBottom: 20, fontSize: '0.9rem' }}>
           Set up a home for your team before entering the dashboard.
         </p>
+        {error && <p className="form-error">{error}</p>}
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }}>
           <input
             className="input-field"
@@ -43,8 +55,8 @@ const WorkspaceCreationModal = () => {
             <option value="Private">Private</option>
             <option value="Public">Public</option>
           </select>
-          <button type="submit" className="glow-button" style={{ width: '100%', marginTop: 8 }}>
-            Create workspace & continue
+          <button type="submit" className="glow-button" style={{ width: '100%', marginTop: 8 }} disabled={submitting}>
+            {submitting ? 'Creating…' : 'Create workspace & continue'}
           </button>
         </form>
       </div>

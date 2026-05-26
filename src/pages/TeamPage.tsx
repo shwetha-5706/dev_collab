@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../contexts/AppContext';
-import { users } from '../data/mock';
+import UserAvatar from '../components/UserAvatar';
 
 const ROLES = ['Owner', 'Admin', 'Member', 'Viewer'] as const;
 
@@ -15,9 +15,12 @@ const TeamPage = () => {
 
   const getPresence = (userId: string) => memberPresence.find((p) => p.userId === userId);
 
-  const handleInvite = () => {
+  const [inviteLink, setInviteLink] = useState('');
+
+  const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
-    inviteMember(inviteEmail.trim(), inviteRole);
+    const link = await inviteMember(inviteEmail.trim(), inviteRole);
+    if (link) setInviteLink(`${window.location.origin}${link}`);
     showToast(`Invitation sent to ${inviteEmail}`);
     setInviteEmail('');
   };
@@ -29,7 +32,7 @@ const TeamPage = () => {
           <div>
             <div className="overline">Team Members</div>
             <h1 style={{ margin: '8px 0' }}>{activeWorkspace?.name} Team</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>
+            <p className="page-lead">
               {activeWorkspace?.members.length} members · Collaboration score {activeWorkspace?.settings.collaborationScore}%
             </p>
           </div>
@@ -47,17 +50,23 @@ const TeamPage = () => {
           </select>
           <button className="glow-button" onClick={handleInvite}>Send Invite</button>
         </div>
+        {inviteLink && (
+          <div className="comment-item" style={{ marginTop: 12, fontSize: '0.85rem' }}>
+            <strong>Invite link (email):</strong>
+            <div style={{ wordBreak: 'break-all', marginTop: 4, opacity: 0.85 }}>{inviteLink}</div>
+          </div>
+        )}
       </div>
 
       <div className="grid-columns">
-        {(activeWorkspace?.members ?? users).map((member) => {
+        {(activeWorkspace?.members ?? []).map((member) => {
           const presence = getPresence(member.id);
           const statusClass = presence?.status.toLowerCase() ?? 'away';
           return (
             <div key={member.id} className="glass card team-member-card">
               <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                 <div style={{ position: 'relative' }}>
-                  <img src={member.avatar} alt={member.name} className="avatar-pill lg" />
+                  <UserAvatar name={member.name} size="lg" />
                   <span className={`presence-dot ${statusClass}`} />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -76,10 +85,10 @@ const TeamPage = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 12, fontSize: '0.82rem', opacity: 0.75 }}>
                     <span className="small-badge">{member.role}</span>
-                    <span>🔥 {member.streak} day streak</span>
+                    <span>{member.streak} day streak</span>
                   </div>
                   {presence?.activity && (
-                    <div style={{ fontSize: '0.78rem', opacity: 0.6, marginTop: 8 }}>
+                    <div className="text-xs-muted" style={{ marginTop: 8 }}>
                       {presence.activity}
                       {presence.viewingTask && ` · viewing "${presence.viewingTask}"`}
                     </div>

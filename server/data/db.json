@@ -1,0 +1,808 @@
+{
+  "users": [
+    {
+      "id": "u-01",
+      "name": "Shwetha",
+      "email": "shwetha@devcollab.io",
+      "avatar": "https://i.pravatar.cc/150?img=47",
+      "role": "Owner",
+      "bio": "Full-stack developer building intelligent collaboration tools.",
+      "skills": [
+        "React",
+        "TypeScript",
+        "Node.js"
+      ],
+      "streak": 14,
+      "badges": [
+        "Sprint Champion",
+        "Code Reviewer"
+      ]
+    },
+    {
+      "id": "u-02",
+      "name": "Rahul",
+      "email": "rahul@devcollab.io",
+      "avatar": "https://i.pravatar.cc/150?img=12",
+      "role": "Admin",
+      "bio": "Backend engineer focused on real-time systems.",
+      "skills": [
+        "Node.js",
+        "Socket.IO",
+        "PostgreSQL"
+      ],
+      "streak": 9,
+      "badges": [
+        "API Architect"
+      ]
+    },
+    {
+      "id": "u-03",
+      "name": "Priya",
+      "email": "priya@devcollab.io",
+      "avatar": "https://i.pravatar.cc/150?img=24",
+      "role": "Member",
+      "bio": "UI/UX designer with a passion for motion design.",
+      "skills": [
+        "Figma",
+        "CSS",
+        "Framer Motion"
+      ],
+      "streak": 7
+    },
+    {
+      "id": "u-04",
+      "name": "Arjun",
+      "email": "arjun@devcollab.io",
+      "avatar": "https://i.pravatar.cc/150?img=33",
+      "role": "Member",
+      "bio": "DevOps and infrastructure specialist.",
+      "skills": [
+        "Docker",
+        "AWS",
+        "CI/CD"
+      ],
+      "streak": 5
+    }
+  ],
+  "credentials": [
+    {
+      "userId": "u-01",
+      "email": "shwetha@devcollab.io",
+      "passwordHash": "ba977b2b8803f4fca3b3dc86856c8edb:67d9e68e9ca391710cb4d91ceeb5c51c4611a9c5f95ea9c44f34c6395238a300d498ab748954c3233e548148a2be1b6178a66fccd379f968dbf9de77a8887278"
+    },
+    {
+      "userId": "u-02",
+      "email": "rahul@devcollab.io",
+      "passwordHash": "ba977b2b8803f4fca3b3dc86856c8edb:67d9e68e9ca391710cb4d91ceeb5c51c4611a9c5f95ea9c44f34c6395238a300d498ab748954c3233e548148a2be1b6178a66fccd379f968dbf9de77a8887278"
+    },
+    {
+      "userId": "u-03",
+      "email": "priya@devcollab.io",
+      "passwordHash": "ba977b2b8803f4fca3b3dc86856c8edb:67d9e68e9ca391710cb4d91ceeb5c51c4611a9c5f95ea9c44f34c6395238a300d498ab748954c3233e548148a2be1b6178a66fccd379f968dbf9de77a8887278"
+    },
+    {
+      "userId": "u-04",
+      "email": "arjun@devcollab.io",
+      "passwordHash": "ba977b2b8803f4fca3b3dc86856c8edb:67d9e68e9ca391710cb4d91ceeb5c51c4611a9c5f95ea9c44f34c6395238a300d498ab748954c3233e548148a2be1b6178a66fccd379f968dbf9de77a8887278"
+    }
+  ],
+  "pendingSignups": [],
+  "workspaces": [
+    {
+      "id": "ws-101",
+      "name": "DevCollab HQ",
+      "description": "Main workspace for the DevCollab platform team.",
+      "type": "Private",
+      "icon": "🚀",
+      "memberIds": [
+        "u-01",
+        "u-02",
+        "u-03",
+        "u-04"
+      ],
+      "settings": {
+        "allowInvites": true,
+        "collaborationScore": 94
+      }
+    },
+    {
+      "id": "ws-102",
+      "name": "Hackathon Squad",
+      "description": "Rapid sprint workspace for hackathon projects.",
+      "type": "Public",
+      "icon": "⚡",
+      "memberIds": [
+        "u-01",
+        "u-02",
+        "u-03"
+      ],
+      "settings": {
+        "allowInvites": true,
+        "collaborationScore": 88
+      }
+    },
+    {
+      "id": "ws-103",
+      "name": "Open Source Lab",
+      "description": "Community-driven open source contributions.",
+      "type": "Public",
+      "icon": "🌐",
+      "memberIds": [
+        "u-01",
+        "u-02"
+      ],
+      "settings": {
+        "allowInvites": true,
+        "collaborationScore": 91
+      }
+    }
+  ],
+  "memberRoles": [
+    {
+      "workspaceId": "ws-101",
+      "userId": "u-01",
+      "role": "Owner"
+    },
+    {
+      "workspaceId": "ws-101",
+      "userId": "u-02",
+      "role": "Admin"
+    },
+    {
+      "workspaceId": "ws-101",
+      "userId": "u-03",
+      "role": "Member"
+    },
+    {
+      "workspaceId": "ws-101",
+      "userId": "u-04",
+      "role": "Member"
+    },
+    {
+      "workspaceId": "ws-102",
+      "userId": "u-01",
+      "role": "Owner"
+    },
+    {
+      "workspaceId": "ws-102",
+      "userId": "u-02",
+      "role": "Admin"
+    },
+    {
+      "workspaceId": "ws-102",
+      "userId": "u-03",
+      "role": "Member"
+    },
+    {
+      "workspaceId": "ws-103",
+      "userId": "u-01",
+      "role": "Owner"
+    },
+    {
+      "workspaceId": "ws-103",
+      "userId": "u-02",
+      "role": "Admin"
+    }
+  ],
+  "projects": [
+    {
+      "id": "p-11",
+      "workspaceId": "ws-101",
+      "name": "DevCollab Dashboard",
+      "banner": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-06-14",
+      "stack": [
+        "React",
+        "TypeScript",
+        "Socket.IO"
+      ],
+      "priority": "P0",
+      "owner": "Shwetha",
+      "health": 15,
+      "progress": 0,
+      "visibility": "Public",
+      "openTasks": 3,
+      "riskLevel": "low"
+    },
+    {
+      "id": "p-12",
+      "workspaceId": "ws-101",
+      "name": "Login API",
+      "banner": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-06-08",
+      "stack": [
+        "Node.js",
+        "JWT",
+        "Express"
+      ],
+      "priority": "P0",
+      "owner": "Rahul",
+      "health": 85,
+      "progress": 95,
+      "visibility": "Private",
+      "openTasks": 2,
+      "riskLevel": "low"
+    },
+    {
+      "id": "p-13",
+      "workspaceId": "ws-101",
+      "name": "AI Assistant Module",
+      "banner": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-06-20",
+      "stack": [
+        "Python",
+        "OpenAI",
+        "FastAPI"
+      ],
+      "priority": "P1",
+      "owner": "Shwetha",
+      "health": 71,
+      "progress": 45,
+      "visibility": "Public",
+      "openTasks": 12,
+      "riskLevel": "medium"
+    },
+    {
+      "id": "p-14",
+      "workspaceId": "ws-101",
+      "name": "Real-time Sync Engine",
+      "banner": "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-06-25",
+      "stack": [
+        "Socket.IO",
+        "Redis",
+        "Node.js"
+      ],
+      "priority": "P1",
+      "owner": "Arjun",
+      "health": 58,
+      "progress": 32,
+      "visibility": "Private",
+      "openTasks": 15,
+      "riskLevel": "high"
+    },
+    {
+      "id": "p-1779820200920-nukoy",
+      "workspaceId": "ws-101",
+      "name": "Test Project",
+      "banner": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-06-01",
+      "stack": [
+        "React"
+      ],
+      "priority": "P2",
+      "owner": "Shwetha",
+      "health": 15,
+      "progress": 0,
+      "visibility": "Private",
+      "openTasks": 1,
+      "riskLevel": "high"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t-001",
+      "projectId": "p-11",
+      "title": "Dashboard UI layout",
+      "description": "Build the mission control dashboard with all widget sections.",
+      "status": "To Do",
+      "priority": "P0",
+      "dueDate": "2026-05-26",
+      "labels": [
+        "UI",
+        "Frontend"
+      ],
+      "assigneeIds": [
+        "u-02"
+      ],
+      "estimate": "8h",
+      "comments": [
+        {
+          "id": "c-1",
+          "author": "Rahul",
+          "text": "Looks great so far!",
+          "time": "1h ago"
+        }
+      ],
+      "history": [
+        "Created by Shwetha",
+        "Status changed to In Progress",
+        "Status changed to To Do"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-002",
+      "projectId": "p-12",
+      "title": "Login API",
+      "description": "Implement JWT-based authentication endpoints.",
+      "status": "Done",
+      "priority": "P0",
+      "dueDate": "2026-05-24",
+      "labels": [
+        "Backend",
+        "Auth"
+      ],
+      "assigneeIds": [
+        "u-02"
+      ],
+      "estimate": "6h",
+      "comments": [],
+      "history": [
+        "Shwetha moved Login API to Done"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-003",
+      "projectId": "p-11",
+      "title": "Kanban drag-and-drop",
+      "description": "Add real-time collaborative task movement on the board preview.",
+      "status": "In Progress",
+      "priority": "P1",
+      "dueDate": "2026-05-28",
+      "labels": [
+        "Realtime",
+        "UX"
+      ],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "5h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha",
+        "Status changed to In Progress"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-004",
+      "projectId": "p-13",
+      "title": "AI standup report generator",
+      "description": "Generate daily standup summaries from task activity.",
+      "status": "In Review",
+      "priority": "P1",
+      "dueDate": "2026-05-27",
+      "labels": [
+        "AI",
+        "Automation"
+      ],
+      "assigneeIds": [
+        "u-01",
+        "u-02"
+      ],
+      "estimate": "4h",
+      "comments": [
+        {
+          "id": "c-2",
+          "author": "Rahul",
+          "text": "Commented on Dashboard UI",
+          "time": "30m ago"
+        }
+      ],
+      "history": [
+        "Rahul commented on Dashboard UI"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-005",
+      "projectId": "p-14",
+      "title": "WebSocket connection pool",
+      "description": "Optimize Socket.IO connections for scale.",
+      "status": "In Progress",
+      "priority": "P0",
+      "dueDate": "2026-05-23",
+      "labels": [
+        "Backend",
+        "Scale"
+      ],
+      "assigneeIds": [
+        "u-04"
+      ],
+      "estimate": "10h",
+      "comments": [],
+      "history": [
+        "Overdue — needs attention"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-006",
+      "projectId": "p-11",
+      "title": "Notification center UI",
+      "description": "Smart grouping and AI importance ranking for alerts.",
+      "status": "To Do",
+      "priority": "P2",
+      "dueDate": "2026-05-30",
+      "labels": [
+        "UI",
+        "Notifications"
+      ],
+      "assigneeIds": [
+        "u-03"
+      ],
+      "estimate": "3h",
+      "comments": [],
+      "history": [
+        "Created by Priya"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-007",
+      "projectId": "p-13",
+      "title": "Burnout detection model",
+      "description": "Analyze workload patterns to flag team burnout risk.",
+      "status": "To Do",
+      "priority": "P1",
+      "dueDate": "2026-06-02",
+      "labels": [
+        "AI",
+        "Analytics"
+      ],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "6h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-008",
+      "projectId": "p-12",
+      "title": "OAuth integration",
+      "description": "Add Google and GitHub OAuth providers.",
+      "status": "Done",
+      "priority": "P1",
+      "dueDate": "2026-05-22",
+      "labels": [
+        "Auth",
+        "Integration"
+      ],
+      "assigneeIds": [
+        "u-02"
+      ],
+      "estimate": "4h",
+      "comments": [],
+      "history": [
+        "Completed by Rahul"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-1779820200927-29ua4",
+      "projectId": "p-1779820200920-nukoy",
+      "title": "Test task",
+      "description": "",
+      "status": "To Do",
+      "priority": "P2",
+      "dueDate": "2026-05-26",
+      "labels": [],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "2h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    }
+  ],
+  "snippets": [
+    {
+      "id": "s-01",
+      "title": "React useDebounce hook",
+      "language": "TypeScript",
+      "code": "export function useDebounce<T>(value: T, delay = 300) {\n  const [debounced, setDebounced] = useState(value);\n  useEffect(() => {\n    const timer = setTimeout(() => setDebounced(value), delay);\n    return () => clearTimeout(timer);\n  }, [value, delay]);\n  return debounced;\n}",
+      "tags": [
+        "react",
+        "hooks",
+        "performance"
+      ],
+      "author": "Shwetha",
+      "trending": true
+    },
+    {
+      "id": "s-02",
+      "title": "Express JWT middleware",
+      "language": "JavaScript",
+      "code": "const auth = (req, res, next) => {\n  const token = req.headers.authorization?.split(\" \")[1];\n  if (!token) return res.status(401).json({ error: \"Unauthorized\" });\n  try { req.user = jwt.verify(token, SECRET); next(); }\n  catch { res.status(401).json({ error: \"Invalid token\" }); }\n};",
+      "tags": [
+        "nodejs",
+        "auth",
+        "middleware"
+      ],
+      "author": "Rahul",
+      "trending": true
+    },
+    {
+      "id": "s-03",
+      "title": "CSS glassmorphism card",
+      "language": "CSS",
+      "code": ".glass-card {\n  background: rgba(18, 24, 45, 0.72);\n  backdrop-filter: blur(16px);\n  border: 1px solid rgba(255,255,255,0.08);\n  border-radius: 24px;\n}",
+      "tags": [
+        "css",
+        "design",
+        "ui"
+      ],
+      "author": "Priya"
+    }
+  ],
+  "snippetFavorites": [
+    {
+      "userId": "u-01",
+      "snippetId": "s-01"
+    },
+    {
+      "userId": "u-01",
+      "snippetId": "s-02"
+    }
+  ],
+  "docs": [
+    {
+      "id": "d-1",
+      "title": "Dashboard Architecture",
+      "body": "Component-based layout with real-time widgets powered by Socket.IO.",
+      "tags": [
+        "architecture",
+        "frontend"
+      ],
+      "updatedBy": "Shwetha",
+      "updatedAt": "2026-05-24",
+      "shared": true,
+      "aiSummary": "Modular dashboard with 18 widget sections and AI insights."
+    },
+    {
+      "id": "d-2",
+      "title": "API Reference",
+      "body": "REST endpoints for tasks, projects, notifications, and workspace management.",
+      "tags": [
+        "api",
+        "backend"
+      ],
+      "updatedBy": "Rahul",
+      "updatedAt": "2026-05-23",
+      "shared": true,
+      "aiSummary": "Complete REST API docs with auth and real-time endpoints."
+    },
+    {
+      "id": "d-3",
+      "title": "Sprint Planning Guide",
+      "body": "Use AI-assisted task breakdown and smart workload balancing.",
+      "tags": [
+        "sprint",
+        "planning"
+      ],
+      "updatedBy": "Shwetha",
+      "updatedAt": "2026-05-22",
+      "aiSummary": "Best practices for AI-powered sprint planning."
+    }
+  ],
+  "notifications": [
+    {
+      "id": "n-1",
+      "userId": "u-01",
+      "type": "mention",
+      "text": "Rahul mentioned you in \"Dashboard UI layout\"",
+      "projectId": "p-11",
+      "time": "2m ago",
+      "read": true,
+      "priority": "high"
+    },
+    {
+      "id": "n-2",
+      "userId": "u-01",
+      "type": "assignment",
+      "text": "You were assigned \"Burnout detection model\"",
+      "projectId": "p-13",
+      "time": "15m ago",
+      "read": true,
+      "priority": "medium"
+    },
+    {
+      "id": "n-3",
+      "userId": "u-01",
+      "type": "deadline",
+      "text": "WebSocket connection pool is overdue",
+      "projectId": "p-14",
+      "time": "1h ago",
+      "read": true,
+      "priority": "high"
+    },
+    {
+      "id": "n-4",
+      "userId": "u-01",
+      "type": "invite",
+      "text": "Arjun invited you to Open Source Lab workspace",
+      "time": "3h ago",
+      "read": true,
+      "priority": "low"
+    },
+    {
+      "id": "n-5",
+      "userId": "u-01",
+      "type": "activity",
+      "text": "Priya completed \"CSS glassmorphism card\" snippet",
+      "time": "5h ago",
+      "read": true,
+      "priority": "low"
+    }
+  ],
+  "activities": [
+    {
+      "id": "a-1779820200928-7hj0d",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created task \"Test task\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "Test Project"
+    },
+    {
+      "id": "a-1779820200920-tvbuc",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created project \"Test Project\"",
+      "timestamp": "Just now",
+      "type": "task"
+    },
+    {
+      "id": "a-1779819411567-0zx21",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "AI rebalanced 1 task(s) across the team",
+      "timestamp": "Just now",
+      "type": "task"
+    },
+    {
+      "id": "a-1779811797811-2fkxa",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "updated task \"Dashboard UI layout\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "DevCollab Dashboard"
+    },
+    {
+      "id": "a-1779811707898-mixta",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "updated task \"Kanban drag-and-drop\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "DevCollab Dashboard"
+    },
+    {
+      "id": "a-1",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "moved Login API to Done",
+      "timestamp": "Just now",
+      "project": "Login API",
+      "type": "task"
+    },
+    {
+      "id": "a-2",
+      "workspaceId": "ws-101",
+      "user": "Rahul",
+      "message": "commented on Dashboard UI",
+      "timestamp": "5m ago",
+      "project": "DevCollab Dashboard",
+      "type": "comment"
+    },
+    {
+      "id": "a-3",
+      "workspaceId": "ws-101",
+      "user": "Priya",
+      "message": "updated Wiki page \"Dashboard Architecture\"",
+      "timestamp": "12m ago",
+      "project": "DevCollab Dashboard",
+      "type": "wiki"
+    },
+    {
+      "id": "a-4",
+      "workspaceId": "ws-101",
+      "user": "Arjun",
+      "message": "joined the Real-time Sync Engine project",
+      "timestamp": "25m ago",
+      "project": "Real-time Sync Engine",
+      "type": "member"
+    },
+    {
+      "id": "a-5",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created task \"Burnout detection model\"",
+      "timestamp": "1h ago",
+      "project": "AI Assistant Module",
+      "type": "task"
+    }
+  ],
+  "calendarEvents": [
+    {
+      "id": "e-1",
+      "title": "Login API deadline",
+      "date": "2026-06-08",
+      "type": "deadline",
+      "projectId": "p-12",
+      "riskScore": 10
+    },
+    {
+      "id": "e-2",
+      "title": "Dashboard sprint review",
+      "date": "2026-05-28",
+      "type": "sprint",
+      "projectId": "p-11"
+    },
+    {
+      "id": "e-3",
+      "title": "AI Module milestone",
+      "date": "2026-06-20",
+      "type": "deadline",
+      "projectId": "p-13",
+      "riskScore": 65
+    },
+    {
+      "id": "e-4",
+      "title": "Team standup",
+      "date": "2026-05-26",
+      "type": "reminder"
+    },
+    {
+      "id": "e-5",
+      "title": "Sync Engine deadline",
+      "date": "2026-06-25",
+      "type": "deadline",
+      "projectId": "p-14",
+      "riskScore": 82
+    }
+  ],
+  "memberPresence": [
+    {
+      "userId": "u-01",
+      "status": "Online",
+      "activity": "Editing Dashboard UI",
+      "viewingTask": "Dashboard UI layout"
+    },
+    {
+      "userId": "u-02",
+      "status": "Online",
+      "activity": "Reviewing PR #42"
+    },
+    {
+      "userId": "u-03",
+      "status": "Away",
+      "activity": "In a meeting"
+    },
+    {
+      "userId": "u-04",
+      "status": "Busy",
+      "activity": "Deploying to staging",
+      "viewingTask": "WebSocket connection pool"
+    }
+  ]
+}

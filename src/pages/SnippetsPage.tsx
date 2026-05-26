@@ -2,6 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import { ClipboardDocumentIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 import { AppContext } from '../contexts/AppContext';
+import SyntaxHighlight from '../components/SyntaxHighlight';
 
 const LANGUAGES = ['All', 'TypeScript', 'JavaScript', 'Python', 'CSS', 'Go', 'Java', 'C++'];
 
@@ -47,7 +48,7 @@ const SnippetsPage = () => {
           <div>
             <div className="overline">Code Snippet Manager</div>
             <h1 style={{ margin: '8px 0' }}>Snippets</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>Save, search, and reuse code with AI recommendations</p>
+            <p className="page-lead">Save, search, and reuse code with AI recommendations</p>
           </div>
           <button className="glow-button" onClick={() => setQuickActionModal('snippet')}>+ New Snippet</button>
         </div>
@@ -59,7 +60,7 @@ const SnippetsPage = () => {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
             {trending.map((s) => (
               <button key={s.id} className="small-badge" style={{ cursor: 'pointer', padding: '8px 14px' }} onClick={() => setSelectedId(s.id)}>
-                🔥 {s.title}
+                {s.title}
               </button>
             ))}
           </div>
@@ -94,7 +95,7 @@ const SnippetsPage = () => {
                     style={{ width: 32, height: 32 }}
                     onClick={(e) => { e.stopPropagation(); toggleSnippetFavorite(s.id); }}
                   >
-                    {s.favorite ? <StarSolid width={16} style={{ color: '#fde047' }} /> : <StarIcon width={16} />}
+                    {s.favorite ? <StarSolid width={16} className="icon-star-active" /> : <StarIcon width={16} />}
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
@@ -120,10 +121,10 @@ const SnippetsPage = () => {
             </div>
 
             <div className="ai-insight-box" style={{ marginBottom: 16 }}>
-              ✨ AI: This snippet provides a reusable {selected.language} utility for {selected.tags[0] ?? 'development'} workflows.
+              AI: This snippet provides a reusable {selected.language} utility for {selected.tags[0] ?? 'development'} workflows.
             </div>
 
-            <pre className="code-block">{selected.code}</pre>
+            <SyntaxHighlight code={selected.code} language={selected.language} />
           </div>
         )}
       </div>

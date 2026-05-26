@@ -18,10 +18,23 @@ const AppRoutes = () => {
   );
 };
 
+const ThemeRoot = () => {
+  const ctx = useContext(AppContext);
+  if (!ctx) return null;
+
+  const themeClass = ctx.theme === 'dark' ? 'theme-dark' : 'theme-light';
+
+  return (
+    <div className={themeClass} style={{ minHeight: '100vh' }}>
+      <AppRoutes />
+    </div>
+  );
+};
+
 function App() {
   return (
     <AppProvider>
-      <AppRoutes />
+      <ThemeRoot />
     </AppProvider>
   );
 }

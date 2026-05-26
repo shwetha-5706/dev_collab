@@ -1,7 +1,10 @@
 import { useContext, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon, ExclamationTriangleIcon, ViewColumnsIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { AppContext } from '../contexts/AppContext';
+import UserAvatar from '../components/UserAvatar';
+import LivePresenceBar from '../components/kanban/LivePresenceBar';
 import TaskDetailPanel from '../components/kanban/TaskDetailPanel';
 import type { Task } from '../types';
 
@@ -14,10 +17,11 @@ const KanbanBoard = () => {
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [addingTo, setAddingTo] = useState<Task['status'] | null>(null);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
   if (!ctx) return null;
 
-  const { tasks, projects, activeWorkspace, updateTaskStatus, createTask, showToast, auth } = ctx;
+  const { tasks, projects, activeWorkspace, memberPresence, updateTaskStatus, createTask, showToast, balanceWorkload, generateTaskSubtasks, auth } = ctx;
 
   const workspaceProjects = useMemo(
     () => projects.filter((p) => p.workspaceId === activeWorkspace?.id),
@@ -55,19 +59,33 @@ const KanbanBoard = () => {
     }
   };
 
-  const handleAddTask = (status: Task['status']) => {
+  const handleAddTask = async (status: Task['status']) => {
     if (!newTaskTitle.trim()) return;
     const projectId = projectFilter !== 'all' ? projectFilter : workspaceProjects[0]?.id;
-    if (!projectId) return;
-    createTask({ title: newTaskTitle.trim(), projectId, status });
-    setNewTaskTitle('');
-    setAddingTo(null);
-    showToast('Task created');
+    if (!projectId) {
+      showToast('Create a project first, then add tasks');
+      return;
+    }
+    try {
+      await createTask({ title: newTaskTitle.trim(), projectId, status });
+      setNewTaskTitle('');
+      setAddingTo(null);
+      showToast('Task created');
+    } catch {
+      showToast('Failed to create task');
+    }
   };
 
-  const generateSubtasks = (task: Task) => {
-    showToast(`AI generated 3 subtasks for "${task.title}"`);
+  const generateSubtasks = async (task: Task) => {
+    await generateTaskSubtasks(task.id);
   };
+
+  const liveSelectedTask = selectedTask
+    ? tasks.find((t) => t.id === selectedTask.id) ?? selectedTask
+    : null;
+
+  const taskViewers = (taskId: string) =>
+    memberPresence.filter((p) => p.viewingTaskId === taskId && p.userId !== auth.user?.id);
 
   return (
     <div>
@@ -76,9 +94,17 @@ const KanbanBoard = () => {
           <div>
             <div className="overline">Advanced Kanban</div>
             <h1 style={{ margin: '8px 0' }}>Task Board</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>Drag tasks between columns — live sync across your team</p>
+            <p className="page-lead">Drag tasks between columns — live sync across your team</p>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className={`filter-tab ${viewMode === 'board' ? 'active' : ''}`} onClick={() => setViewMode('board')} title="Board view">
+                <ViewColumnsIcon width={16} />
+              </button>
+              <button className={`filter-tab ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List view">
+                <ListBulletIcon width={16} />
+              </button>
+            </div>
             <select className="input-field" style={{ width: 'auto', minWidth: 180 }} value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
               <option value="all">All projects</option>
               {workspaceProjects.map((p) => (
@@ -87,7 +113,7 @@ const KanbanBoard = () => {
                 </option>
               ))}
             </select>
-            <button className="glow-button secondary" onClick={() => showToast('AI workload balancing applied')}>
+            <button className="glow-button secondary" onClick={() => balanceWorkload()}>
               <SparklesIcon width={18} /> Balance workload
             </button>
           </div>
@@ -106,6 +132,50 @@ const KanbanBoard = () => {
         )}
       </div>
 
+      <LivePresenceBar />
+
+      {workspaceProjects.length === 0 ? (
+        <div className="glass card section" style={{ textAlign: 'center', padding: 48 }}>
+          <h2 style={{ margin: '0 0 8px' }}>No projects to work on</h2>
+          <p className="page-lead" style={{ marginBottom: 20 }}>
+            Create a project first, then add and manage tasks on this board.
+          </p>
+          <Link to="/projects" className="glow-button">Create a project</Link>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="glass card section">
+          <table className="task-list-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', fontSize: '0.78rem', opacity: 0.7 }}>
+                <th style={{ padding: '10px 12px' }}>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Assignee</th>
+                <th>Due</th>
+                <th>Labels</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTasks.map((task) => (
+                <tr
+                  key={task.id}
+                  className="task-list-row"
+                  onClick={() => setSelectedTask(task)}
+                  style={{ cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <td style={{ padding: '12px', fontWeight: 600 }}>{task.title}</td>
+                  <td><span className="small-badge">{task.status}</span></td>
+                  <td><span className={`small-badge priority-${task.priority.toLowerCase()}`}>{task.priority}</span></td>
+                  <td>{task.assignees.map((a) => a.name).join(', ') || '—'}</td>
+                  <td>{task.dueDate}</td>
+                  <td>{task.labels.map((l) => <span key={l} className="small-badge" style={{ marginRight: 4 }}>{l}</span>)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredTasks.length === 0 && <p className="empty-state">No tasks found</p>}
+        </div>
+      ) : (
       <div className="kanban-board">
         {columns.map((status) => {
           const columnTasks = filteredTasks.filter((t) => t.status === status);
@@ -123,6 +193,7 @@ const KanbanBoard = () => {
 
               {columnTasks.map((task) => {
                 const isOverdue = task.dueDate < new Date().toISOString().slice(0, 10) && task.status !== 'Done';
+                const viewers = taskViewers(task.id);
                 return (
                   <motion.div
                     key={task.id}
@@ -138,12 +209,20 @@ const KanbanBoard = () => {
                     <div style={{ fontWeight: 600, marginBottom: 6 }}>{task.title}</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                       <span className={`small-badge priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
-                      {isOverdue && <span className="small-badge" style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5' }}>Overdue</span>}
+                      {isOverdue && <span className="small-badge badge-danger">Overdue</span>}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, alignItems: 'center' }}>
                       <div className="avatar-group">
                         {task.assignees.slice(0, 3).map((a) => (
-                          <img key={a.id} src={a.avatar} alt="" className="avatar-pill" style={{ width: 24, height: 24 }} />
+                          <UserAvatar key={a.id} name={a.name} size="xs" title={a.name} />
+                        ))}
+                        {viewers.map((p) => (
+                          <UserAvatar
+                            key={`view-${p.userId}`}
+                            name={p.userName ?? 'User'}
+                            size="xs"
+                            title={`${p.userName ?? 'Teammate'} is viewing`}
+                          />
                         ))}
                       </div>
                       <button
@@ -189,8 +268,9 @@ const KanbanBoard = () => {
           );
         })}
       </div>
+      )}
 
-      <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />
+      <TaskDetailPanel task={liveSelectedTask} onClose={() => setSelectedTask(null)} />
     </div>
   );
 };

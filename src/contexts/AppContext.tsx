@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   Activity,
   AuthState,
@@ -8,31 +8,21 @@ import type {
   CreateSnippetInput,
   CreateTaskInput,
   DocPage,
+  DocVersion,
   MemberPresence,
   Notification,
   Project,
   QuickActionType,
   SearchResult,
   Snippet,
+  SubscriptionPlan,
   Task,
   TaskFilter,
   UserProfile,
   Workspace,
 } from '../types';
-import {
-  activities as mockActivities,
-  aiInsights,
-  analyticsData,
-  calendarEvents,
-  docs as mockDocs,
-  memberPresence as mockPresence,
-  notifications as mockNotifications,
-  projects as mockProjects,
-  snippets as mockSnippets,
-  tasks as mockTasks,
-  users,
-  workspaces as mockWorkspaces,
-} from '../data/mock';
+import { api, ApiError, getToken, setToken, type BootstrapPayload } from '../api/client';
+import { connectSocket, disconnectSocket } from '../api/socket';
 
 const AUTH_STORAGE_KEY = 'devcollab_auth';
 
@@ -40,6 +30,24 @@ type StoredAuth = {
   userId: string;
   currentWorkspaceId: string;
   rememberMe: boolean;
+};
+
+const defaultAiInsights = {
+  blockedTasks: 0,
+  sprintHealth: 100,
+  burnoutRisk: 'low' as const,
+  teamMood: 'focused' as const,
+  predictions: [] as string[],
+  recommendations: [] as string[],
+};
+
+const defaultAnalytics = {
+  daily: [0, 0, 0, 0, 0, 0, 0],
+  weekly: [0, 0, 0, 0, 0, 0, 0],
+  monthly: [0, 0, 0, 0, 0, 0],
+  teamPerformance: [] as { name: string; completed: number; assigned: number }[],
+  collaborationScore: 0,
+  burnoutIndex: 0,
 };
 
 export type AppContextValue = {
@@ -53,44 +61,69 @@ export type AppContextValue = {
   activities: Activity[];
   memberPresence: MemberPresence[];
   calendarEvents: CalendarEvent[];
-  aiInsights: typeof aiInsights;
-  analyticsData: typeof analyticsData;
+  aiInsights: typeof defaultAiInsights;
+  analyticsData: typeof defaultAnalytics;
+  subscription: SubscriptionPlan;
   activeWorkspace: Workspace | undefined;
+  loading: boolean;
+  backendOnline: boolean;
   theme: 'dark' | 'light';
   sidebarCollapsed: boolean;
   notificationPanelOpen: boolean;
   commandPaletteOpen: boolean;
   quickActionModal: QuickActionType | null;
+  quickActionProjectId: string | null;
   taskFilter: TaskFilter;
   searchQuery: string;
   searchResults: SearchResult[];
   toast: string | null;
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ demoOtp?: string }>;
   signOut: () => void;
+  socialLogin: (provider: string, email: string, rememberMe?: boolean) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
-  createWorkspace: (name: string, description: string, type: Workspace['type']) => void;
-  selectWorkspace: (workspaceId: string) => void;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  updateTaskStatus: (taskId: string, status: Task['status']) => void;
-  createTask: (input: CreateTaskInput) => Task;
-  updateTask: (taskId: string, updates: Partial<Task>) => void;
-  deleteTask: (taskId: string) => void;
-  addTaskComment: (taskId: string, text: string) => void;
-  createProject: (input: CreateProjectInput) => Project;
-  updateProject: (projectId: string, updates: Partial<Project>) => void;
-  deleteProject: (projectId: string) => void;
-  createSnippet: (input: CreateSnippetInput) => Snippet;
-  createDoc: (input: CreateDocInput) => DocPage;
-  inviteMember: (email: string, role: UserProfile['role']) => void;
-  generateAIReport: () => string;
-  toggleSnippetFavorite: (snippetId: string) => void;
+  createWorkspace: (name: string, description: string, type: Workspace['type']) => Promise<void>;
+  updateWorkspace: (updates: Partial<Pick<Workspace, 'name' | 'description' | 'type' | 'icon'>> & { allowInvites?: boolean }) => Promise<void>;
+  selectWorkspace: (workspaceId: string) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  updateTaskStatus: (taskId: string, status: Task['status']) => Promise<void>;
+  createTask: (input: CreateTaskInput) => Promise<Task | null>;
+  updateTask: (taskId: string, updates: Partial<Task> & { assigneeIds?: string[] }) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  addTaskComment: (taskId: string, text: string) => Promise<void>;
+  generateTaskSubtasks: (taskId: string) => Promise<void>;
+  balanceWorkload: () => Promise<void>;
+  createProject: (input: CreateProjectInput) => Promise<Project | null>;
+  updateProject: (projectId: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
+  createSnippet: (input: CreateSnippetInput) => Promise<Snippet | null>;
+  createDoc: (input: CreateDocInput) => Promise<DocPage | null>;
+  updateDoc: (docId: string, updates: Partial<DocPage>) => Promise<void>;
+  inviteMember: (email: string, role: UserProfile['role']) => Promise<string | undefined>;
+  updateProfile: (updates: Partial<Pick<UserProfile, 'name' | 'bio' | 'skills' | 'avatar' | 'github'>>) => Promise<void>;
+  generateAIReport: () => Promise<{ report: string; provider: 'openai' | 'local' }>;
+  getTaskInsight: (taskId: string) => Promise<{ insight: string; provider: 'openai' | 'local' }>;
+  summarizeTaskComments: (taskId: string) => Promise<{ summary: string; provider: 'openai' | 'local' }>;
+  getCollaborationInsight: () => Promise<{ insight: string; provider: 'openai' | 'local' }>;
+  getActivityDigest: () => Promise<{ digest: string; provider: 'openai' | 'local' }>;
+  aiProvider: 'openai' | 'local';
+  aiConfigured: boolean;
+  summarizeProject: () => Promise<string>;
+  getBlockersReport: () => Promise<string>;
+  generateTaskBreakdown: (description: string, projectId: string) => Promise<number>;
+  analyzeCode: (code: string, language: string) => Promise<Record<string, unknown>>;
+  toggleSnippetFavorite: (snippetId: string) => Promise<void>;
+  getDocVersions: (docId: string) => Promise<DocVersion[]>;
+  checkoutPro: () => Promise<void>;
+  refreshBilling: () => Promise<void>;
+  refreshData: () => Promise<void>;
+  checkBackend: () => Promise<boolean>;
   setTheme: (theme: 'dark' | 'light') => void;
   toggleSidebar: () => void;
   setNotificationPanelOpen: (open: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
-  setQuickActionModal: (action: QuickActionType | null) => void;
+  setQuickActionModal: (action: QuickActionType | null, projectId?: string | null) => void;
   setTaskFilter: (filter: TaskFilter) => void;
   setSearchQuery: (query: string) => void;
   globalSearch: (query: string) => SearchResult[];
@@ -124,32 +157,46 @@ const persistAuth = (userId: string, workspaceId: string, rememberMe: boolean) =
     localStorage.removeItem(AUTH_STORAGE_KEY);
     return;
   }
-  localStorage.setItem(
-    AUTH_STORAGE_KEY,
-    JSON.stringify({ userId, currentWorkspaceId: workspaceId, rememberMe: true })
-  );
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ userId, currentWorkspaceId: workspaceId, rememberMe: true }));
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState>(defaultAuth);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(mockWorkspaces);
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [snippets, setSnippets] = useState<Snippet[]>(mockSnippets);
-  const [docs, setDocs] = useState<DocPage[]>(mockDocs);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
-  const [memberPresence] = useState<MemberPresence[]>(mockPresence);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [docs, setDocs] = useState<DocPage[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [memberPresence, setMemberPresence] = useState<MemberPresence[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [aiInsights, setAiInsights] = useState(defaultAiInsights);
+  const [analyticsData, setAnalyticsData] = useState(defaultAnalytics);
+  const [subscription, setSubscription] = useState<SubscriptionPlan>({
+    plan: 'free',
+    limits: { workspaces: 1, projects: 3, members: 5, ai: false },
+  });
+  const [loading, setLoading] = useState(false);
+  const [backendOnline, setBackendOnline] = useState(true);
+  const [aiProvider, setAiProvider] = useState<'openai' | 'local'>('local');
+  const [aiConfigured, setAiConfigured] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [quickActionModal, setQuickActionModal] = useState<QuickActionType | null>(null);
+  const [quickActionModal, setQuickActionModalState] = useState<QuickActionType | null>(null);
+  const [quickActionProjectId, setQuickActionProjectId] = useState<string | null>(null);
+
+  const setQuickActionModal = useCallback((action: QuickActionType | null, projectId?: string | null) => {
+    setQuickActionModalState(action);
+    setQuickActionProjectId(projectId ?? null);
+  }, []);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('week');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [toast, setToast] = useState<string | null>(null);
-  const [pendingSignupName, setPendingSignupName] = useState('');
+  const workspaceIdRef = useRef('');
 
   const activeWorkspace = useMemo(
     () => workspaces.find((w) => w.id === auth.currentWorkspaceId) ?? workspaces[0],
@@ -161,68 +208,170 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTimeout(() => setToast(null), 3200);
   }, []);
 
-  const addActivity = useCallback((user: string, message: string, type: Activity['type'] = 'task') => {
-    setActivities((prev) => [
-      { id: `a-${Date.now()}`, user, message, timestamp: 'Just now', type },
-      ...prev.slice(0, 9),
-    ]);
+  const applyBootstrap = useCallback((data: BootstrapPayload, rememberMe = auth.rememberMe) => {
+    if (data.user) {
+      setAuth((prev) => ({
+        ...prev,
+        user: data.user,
+        isAuthenticated: true,
+        currentWorkspaceId: data.workspaceId,
+        sessionActive: true,
+        rememberMe,
+        needsWorkspaceSetup: false,
+        pendingSignupEmail: null,
+      }));
+      persistAuth(data.user.id, data.workspaceId, rememberMe);
+    }
+    setWorkspaces(data.workspaces);
+    setProjects(data.projects);
+    setTasks(data.tasks);
+    setSnippets(data.snippets);
+    setDocs(data.docs);
+    setNotifications(data.notifications);
+    setActivities(data.activities);
+    setMemberPresence(data.memberPresence);
+    setCalendarEvents(data.calendarEvents);
+    setAnalyticsData(data.analyticsData);
+    setAiInsights(data.aiInsights as typeof defaultAiInsights);
+    if (data.subscription) setSubscription(data.subscription);
+    workspaceIdRef.current = data.workspaceId;
+  }, [auth.rememberMe]);
+
+  const refreshAIStatus = useCallback(async () => {
+    if (!getToken()) return;
+    try {
+      const status = await api.getAIStatus();
+      setAiProvider(status.provider);
+      setAiConfigured(status.configured);
+    } catch {
+      setAiProvider('local');
+      setAiConfigured(false);
+    }
+  }, []);
+
+  const checkBackend = useCallback(async () => {
+    try {
+      await api.health();
+      setBackendOnline(true);
+      return true;
+    } catch {
+      setBackendOnline(false);
+      return false;
+    }
+  }, []);
+
+  const refreshData = useCallback(async () => {
+    if (!getToken()) return;
+    try {
+      const data = await api.bootstrap(auth.currentWorkspaceId || workspaceIdRef.current);
+      applyBootstrap(data);
+      setBackendOnline(true);
+      await refreshAIStatus();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setToken(null);
+        setAuth(defaultAuth);
+      } else {
+        setBackendOnline(false);
+      }
+    }
+  }, [auth.currentWorkspaceId, applyBootstrap, refreshAIStatus]);
+
+  useEffect(() => {
+    checkBackend();
+    const interval = setInterval(checkBackend, 30000);
+    return () => clearInterval(interval);
+  }, [checkBackend]);
+
+  useEffect(() => {
+    const init = async () => {
+      if (!getToken()) {
+        const stored = loadStoredAuth();
+        if (stored?.rememberMe) {
+          showToast('Session expired — please sign in again');
+        }
+        await checkBackend();
+        return;
+      }
+      setLoading(true);
+      try {
+        const stored = loadStoredAuth();
+        const data = await api.bootstrap(stored?.currentWorkspaceId);
+        applyBootstrap(data, stored?.rememberMe ?? false);
+        setBackendOnline(true);
+      } catch {
+        setToken(null);
+        setBackendOnline(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
-    const stored = loadStoredAuth();
-    if (!stored?.rememberMe) return;
-    const user = users.find((u) => u.id === stored.userId) ?? users[0];
-    setAuth({
-      user,
-      isAuthenticated: true,
-      currentWorkspaceId: stored.currentWorkspaceId || mockWorkspaces[0].id,
-      sessionActive: true,
-      rememberMe: true,
-      needsWorkspaceSetup: false,
-      pendingSignupEmail: null,
-    });
-  }, []);
+    if (!auth.isAuthenticated || !auth.currentWorkspaceId || !auth.user) return;
+    connectSocket(
+      auth.currentWorkspaceId,
+      auth.user.id,
+      auth.user.name,
+      {
+        onRefresh: () => { refreshData(); },
+        onTaskUpdated: (task) => {
+          setTasks((prev) => {
+            const exists = prev.some((x) => x.id === task.id);
+            return exists ? prev.map((x) => (x.id === task.id ? task : x)) : [...prev, task];
+          });
+        },
+        onTaskCreated: (task) => {
+          setTasks((prev) => (prev.some((x) => x.id === task.id) ? prev : [...prev, task]));
+        },
+        onActivityNew: (activity) => {
+          setActivities((prev) => [activity, ...prev.filter((a) => a.id !== activity.id)].slice(0, 20));
+        },
+        onPresenceChanged: (presence) => setMemberPresence(presence),
+        onLiveUpdate: (message) => {
+          if (!message.includes(auth.user?.name ?? '')) {
+            showToast(`Live: ${message}`);
+          }
+        },
+        onNotification: (n) => {
+          setNotifications((prev) => [n, ...prev]);
+          showToast(n.text);
+        },
+      }
+    );
+    return () => disconnectSocket();
+  }, [auth.isAuthenticated, auth.currentWorkspaceId, auth.user?.id, refreshData, showToast]);
 
   const globalSearch = useCallback(
     (query: string): SearchResult[] => {
       if (!query.trim()) return [];
       const q = query.toLowerCase();
       const results: SearchResult[] = [];
-
       tasks.forEach((t) => {
-        if (t.title.toLowerCase().includes(q)) {
-          results.push({ id: t.id, type: 'task', title: t.title, subtitle: t.status });
-        }
+        if (t.title.toLowerCase().includes(q)) results.push({ id: t.id, type: 'task', title: t.title, subtitle: t.status });
       });
       projects.forEach((p) => {
-        if (p.name.toLowerCase().includes(q)) {
-          results.push({ id: p.id, type: 'project', title: p.name, subtitle: `${p.progress}% complete` });
-        }
+        if (p.name.toLowerCase().includes(q)) results.push({ id: p.id, type: 'project', title: p.name, subtitle: `${p.progress}% complete` });
       });
       docs.forEach((d) => {
-        if (d.title.toLowerCase().includes(q)) {
-          results.push({ id: d.id, type: 'doc', title: d.title, subtitle: `Updated by ${d.updatedBy}` });
-        }
+        if (d.title.toLowerCase().includes(q)) results.push({ id: d.id, type: 'doc', title: d.title, subtitle: `Updated by ${d.updatedBy}` });
       });
       snippets.forEach((s) => {
-        if (s.title.toLowerCase().includes(q)) {
-          results.push({ id: s.id, type: 'snippet', title: s.title, subtitle: s.language });
-        }
+        if (s.title.toLowerCase().includes(q)) results.push({ id: s.id, type: 'snippet', title: s.title, subtitle: s.language });
       });
-      users.forEach((u) => {
+      activeWorkspace?.members.forEach((u) => {
         if (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) {
           results.push({ id: u.id, type: 'member', title: u.name, subtitle: u.role });
         }
       });
-
       return results.slice(0, 8);
     },
-    [tasks, projects, docs, snippets]
+    [tasks, projects, docs, snippets, activeWorkspace]
   );
 
-  useEffect(() => {
-    setSearchResults(globalSearch(searchQuery));
-  }, [searchQuery, globalSearch]);
+  useEffect(() => setSearchResults(globalSearch(searchQuery)), [searchQuery, globalSearch]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -240,289 +389,256 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  useEffect(() => {
-    if (!auth.isAuthenticated) return;
-    const interval = setInterval(() => {
-      const liveActivity: Activity = {
-        id: `a-live-${Date.now()}`,
-        user: users[Math.floor(Math.random() * users.length)].name,
-        message: ['updated a task', 'added a comment', 'shared a snippet', 'edited a wiki page'][
-          Math.floor(Math.random() * 4)
-        ],
-        timestamp: 'Just now',
-        type: 'task',
-      };
-      setActivities((prev) => [liveActivity, ...prev.slice(0, 9)]);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [auth.isAuthenticated]);
-
-  const signIn = async (email: string, _password: string, rememberMe = false) => {
-    const user = users.find((u) => u.email === email) ?? users[0];
-    const workspaceId = mockWorkspaces[0].id;
-    setAuth({
-      user,
-      isAuthenticated: true,
-      currentWorkspaceId: workspaceId,
-      sessionActive: true,
-      rememberMe,
-      needsWorkspaceSetup: false,
-      pendingSignupEmail: null,
-    });
-    persistAuth(user.id, workspaceId, rememberMe);
+  const signIn = async (email: string, password: string, rememberMe = false) => {
+    const { token, user, workspaceId } = await api.login(email, password);
+    setToken(token);
+    setAuth((prev) => ({ ...prev, rememberMe }));
+    const data = await api.bootstrap(workspaceId);
+    applyBootstrap(data, rememberMe);
   };
 
-  const signUp = async (email: string, _password: string, name?: string) => {
-    setPendingSignupName(name ?? email.split('@')[0]);
-    setAuth((prev) => ({
-      ...prev,
-      isAuthenticated: false,
-      pendingSignupEmail: email,
-      needsWorkspaceSetup: false,
-    }));
+  const signUp = async (email: string, password: string, name?: string) => {
+    const result = await api.signup(email, password, name);
+    setAuth((prev) => ({ ...prev, pendingSignupEmail: email, isAuthenticated: false }));
+    return { demoOtp: result.demoOtp };
+  };
+
+  const socialLogin = async (provider: string, email: string, rememberMe = false) => {
+    const { token, user, workspaceId } = await api.socialLogin(provider, email);
+    setToken(token);
+    const data = await api.bootstrap(workspaceId);
+    applyBootstrap(data, rememberMe);
   };
 
   const signOut = () => {
+    setToken(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    disconnectSocket();
     setAuth(defaultAuth);
-    setPendingSignupName('');
+    setWorkspaces([]);
+    setProjects([]);
+    setTasks([]);
   };
 
-  const verifyOtp = async (_otp: string) => {
-    const email = auth.pendingSignupEmail ?? 'new@devcollab.io';
-    const newUser: UserProfile = {
-      id: `u-${Date.now()}`,
-      name: pendingSignupName || email.split('@')[0],
-      email,
-      avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
-      role: 'Owner',
-      bio: 'New DevCollab member.',
-      skills: [],
-      streak: 0,
-    };
+  const verifyOtp = async (otp: string) => {
+    const email = auth.pendingSignupEmail;
+    if (!email) throw new Error('No pending signup');
+    const { token, user, needsWorkspaceSetup } = await api.verifyOtp(email, otp);
+    setToken(token);
     setAuth({
-      user: newUser,
+      user: user as UserProfile,
       isAuthenticated: false,
       currentWorkspaceId: '',
       sessionActive: false,
       rememberMe: false,
-      needsWorkspaceSetup: true,
+      needsWorkspaceSetup,
       pendingSignupEmail: email,
     });
   };
 
-  const createWorkspace = (name: string, description: string, type: Workspace['type']) => {
-    const wsId = `ws-${Date.now()}`;
-    const owner = auth.user ?? users[0];
-    const newWorkspace: Workspace = {
-      id: wsId,
-      name,
-      description,
-      type,
-      icon: '🚀',
-      members: [owner],
-      settings: { allowInvites: true, collaborationScore: 85 },
-    };
-    setWorkspaces((prev) => [...prev, newWorkspace]);
-    setAuth((prev) => ({
-      ...prev,
-      isAuthenticated: true,
-      currentWorkspaceId: wsId,
-      sessionActive: true,
-      needsWorkspaceSetup: false,
-      pendingSignupEmail: null,
-    }));
-    persistAuth(owner.id, wsId, auth.rememberMe);
-    addActivity(owner.name, `created workspace "${name}"`, 'member');
+  const createWorkspace = async (name: string, description: string, type: Workspace['type']) => {
+    const data = await api.createWorkspace(name, description, type);
+    applyBootstrap(data);
     showToast(`Workspace "${name}" created!`);
   };
 
-  const selectWorkspace = (workspaceId: string) => {
-    setAuth((prev) => {
-      if (prev.user && prev.rememberMe) {
-        persistAuth(prev.user.id, workspaceId, true);
-      }
-      return { ...prev, currentWorkspaceId: workspaceId };
-    });
+  const updateWorkspace = async (updates: Partial<Pick<Workspace, 'name' | 'description' | 'type' | 'icon'>> & { allowInvites?: boolean }) => {
+    if (!activeWorkspace) return;
+    const data = await api.updateWorkspace(activeWorkspace.id, updates);
+    applyBootstrap(data);
+    showToast('Workspace settings saved');
   };
 
-  const markNotificationRead = (id: string) => {
+  const selectWorkspace = async (workspaceId: string) => {
+    const data = await api.bootstrap(workspaceId);
+    applyBootstrap(data, auth.rememberMe);
+  };
+
+  const markNotificationRead = async (id: string) => {
+    await api.markNotificationRead(id);
     setNotifications((items) => items.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
-  const markAllNotificationsRead = () => {
+  const markAllNotificationsRead = async () => {
+    await api.markAllNotificationsRead();
     setNotifications((items) => items.map((n) => ({ ...n, read: true })));
   };
 
-  const updateTaskStatus = (taskId: string, status: Task['status']) => {
-    setTasks((items) =>
-      items.map((t) =>
-        t.id === taskId
-          ? { ...t, status, history: [...t.history, `Status changed to ${status}`] }
-          : t
-      )
-    );
-    const task = tasks.find((t) => t.id === taskId);
-    if (task && auth.user) {
-      addActivity(auth.user.name, `moved ${task.title} to ${status}`, 'task');
-    }
+  const updateTaskStatus = async (taskId: string, status: Task['status']) => {
+    const task = await api.updateTask(taskId, { status }) as Task;
+    setTasks((items) => items.map((t) => (t.id === taskId ? task : t)));
+    await refreshData();
   };
 
-  const createTask = (input: CreateTaskInput): Task => {
-    const task: Task = {
-      id: `t-${Date.now()}`,
-      projectId: input.projectId,
-      title: input.title,
-      description: input.description ?? '',
-      status: input.status ?? 'To Do',
-      priority: input.priority ?? 'P2',
-      dueDate: input.dueDate ?? new Date().toISOString().slice(0, 10),
-      labels: input.labels ?? [],
-      assignees: auth.user ? [auth.user] : [],
-      estimate: input.estimate ?? '2h',
-      comments: [],
-      history: [`Created by ${auth.user?.name ?? 'Unknown'}`],
-    };
+  const createTask = async (input: CreateTaskInput) => {
+    if (!input.projectId) {
+      throw new ApiError('Select a project for this task.', 400);
+    }
+    const task = await api.createTask({
+      ...input,
+      workspaceId: auth.currentWorkspaceId || workspaceIdRef.current,
+    }) as Task;
     setTasks((prev) => [...prev, task]);
-    setProjects((prev) =>
-      prev.map((p) => (p.id === input.projectId ? { ...p, openTasks: p.openTasks + 1 } : p))
-    );
-    if (auth.user) addActivity(auth.user.name, `created task "${input.title}"`, 'task');
+    await refreshData();
     return task;
   };
 
-  const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks((items) =>
-      items.map((t) => {
-        if (t.id !== taskId) return t;
-        const history = [...t.history];
-        if (updates.status && updates.status !== t.status) {
-          history.push(`Status changed to ${updates.status}`);
-        }
-        if (updates.title && updates.title !== t.title) {
-          history.push(`Title updated to "${updates.title}"`);
-        }
-        return { ...t, ...updates, history };
-      })
-    );
-    if (auth.user) addActivity(auth.user.name, `updated task`, 'task');
+  const updateTask = async (taskId: string, updates: Partial<Task> & { assigneeIds?: string[] }) => {
+    const { assignees, ...rest } = updates;
+    const payload: Record<string, unknown> = { ...rest };
+    if (assignees) payload.assigneeIds = assignees.map((a) => a.id);
+    if (updates.assigneeIds) payload.assigneeIds = updates.assigneeIds;
+    const task = await api.updateTask(taskId, payload) as Task;
+    setTasks((items) => items.map((t) => (t.id === taskId ? task : t)));
   };
 
-  const deleteTask = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
+  const deleteTask = async (taskId: string) => {
+    await api.deleteTask(taskId);
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    if (task) {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === task.projectId ? { ...p, openTasks: Math.max(0, p.openTasks - 1) } : p))
-      );
+    await refreshData();
+  };
+
+  const addTaskComment = async (taskId: string, text: string) => {
+    const task = await api.addComment(taskId, text) as Task;
+    setTasks((items) => items.map((t) => (t.id === taskId ? task : t)));
+  };
+
+  const generateTaskSubtasks = async (taskId: string) => {
+    const task = await api.generateSubtasks(taskId) as Task;
+    setTasks((items) => items.map((t) => (t.id === taskId ? task : t)));
+    showToast('AI subtasks generated');
+  };
+
+  const balanceWorkload = async () => {
+    if (!activeWorkspace) return;
+    const data = await api.balanceWorkload(activeWorkspace.id);
+    applyBootstrap(data);
+    showToast('Workload rebalanced across the team');
+  };
+
+  const createProject = async (input: CreateProjectInput) => {
+    const workspaceId = auth.currentWorkspaceId || workspaceIdRef.current;
+    if (!workspaceId) {
+      throw new ApiError('Create a workspace before adding projects.', 400);
     }
-  };
-
-  const addTaskComment = (taskId: string, text: string) => {
-    const author = auth.user?.name ?? 'Anonymous';
-    setTasks((items) =>
-      items.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              comments: [
-                ...t.comments,
-                { id: `c-${Date.now()}`, author, text, time: 'Just now' },
-              ],
-              history: [...t.history, `${author} commented`],
-            }
-          : t
-      )
-    );
-    addActivity(author, `commented on a task`, 'comment');
-  };
-
-  const createProject = (input: CreateProjectInput): Project => {
-    const project: Project = {
-      id: `p-${Date.now()}`,
-      workspaceId: auth.currentWorkspaceId || mockWorkspaces[0].id,
-      name: input.name,
-      banner: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80',
-      deadline: input.deadline,
-      stack: input.stack,
-      priority: input.priority,
-      owner: auth.user?.name ?? 'Unknown',
-      health: 100,
-      progress: 0,
-      visibility: input.visibility,
-      openTasks: 0,
-      riskLevel: 'low',
-    };
+    const project = await api.createProject({
+      ...input,
+      workspaceId,
+    }) as Project;
     setProjects((prev) => [...prev, project]);
-    if (auth.user) addActivity(auth.user.name, `created project "${input.name}"`, 'task');
+    await refreshData();
     return project;
   };
 
-  const updateProject = (projectId: string, updates: Partial<Project>) => {
-    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, ...updates } : p)));
+  const updateProject = async (projectId: string, updates: Partial<Project>) => {
+    const project = await api.updateProject(projectId, updates) as Project;
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? project : p)));
   };
 
-  const deleteProject = (projectId: string) => {
+  const deleteProject = async (projectId: string) => {
+    await api.deleteProject(projectId);
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
     setTasks((prev) => prev.filter((t) => t.projectId !== projectId));
   };
 
-  const createSnippet = (input: CreateSnippetInput): Snippet => {
-    const snippet: Snippet = {
-      id: `s-${Date.now()}`,
-      title: input.title,
-      language: input.language,
-      code: input.code,
-      tags: input.tags ?? [],
-      favorite: false,
-      author: auth.user?.name ?? 'Unknown',
-    };
-    setSnippets((prev) => [...prev, snippet]);
-    if (auth.user) addActivity(auth.user.name, `added snippet "${input.title}"`, 'wiki');
+  const createSnippet = async (input: CreateSnippetInput) => {
+    const workspaceId = auth.currentWorkspaceId || workspaceIdRef.current;
+    const snippet = await api.createSnippet({ ...input, workspaceId }) as Snippet;
+    setSnippets((prev) => [snippet, ...prev]);
+    await refreshData();
     return snippet;
   };
 
-  const createDoc = (input: CreateDocInput): DocPage => {
-    const doc: DocPage = {
-      id: `d-${Date.now()}`,
-      title: input.title,
-      body: input.body,
-      tags: input.tags ?? [],
-      updatedBy: auth.user?.name ?? 'Unknown',
-      updatedAt: new Date().toISOString().slice(0, 10),
-      shared: true,
-    };
-    setDocs((prev) => [...prev, doc]);
-    if (auth.user) addActivity(auth.user.name, `created doc "${input.title}"`, 'wiki');
+  const createDoc = async (input: CreateDocInput) => {
+    const workspaceId = auth.currentWorkspaceId || workspaceIdRef.current;
+    const doc = await api.createDoc({ ...input, workspaceId }) as DocPage;
+    setDocs((prev) => [doc, ...prev]);
+    await refreshData();
     return doc;
   };
 
-  const inviteMember = (email: string, role: UserProfile['role']) => {
-    const inviteNotification: Notification = {
-      id: `n-${Date.now()}`,
-      type: 'invite',
-      text: `Invitation sent to ${email} as ${role}`,
-      time: 'Just now',
-      read: false,
-      priority: 'low',
-    };
-    setNotifications((prev) => [inviteNotification, ...prev]);
-    if (auth.user) addActivity(auth.user.name, `invited ${email} as ${role}`, 'member');
+  const updateDoc = async (docId: string, updates: Partial<DocPage>) => {
+    const doc = await api.updateDoc(docId, updates) as DocPage;
+    setDocs((prev) => prev.map((d) => (d.id === docId ? doc : d)));
+    showToast('Document saved');
   };
 
-  const generateAIReport = (): string => {
-    const done = tasks.filter((t) => t.status === 'Done').length;
-    const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
-    const overdue = tasks.filter((t) => t.dueDate < new Date().toISOString().slice(0, 10) && t.status !== 'Done').length;
-    const report = `## Daily Standup Report\n\n**Completed:** ${done} tasks\n**In Progress:** ${inProgress} tasks\n**Overdue:** ${overdue} tasks\n\n**Sprint Health:** ${aiInsights.sprintHealth}%\n**Team Mood:** ${aiInsights.teamMood}\n\n### Key Updates\n${aiInsights.predictions.map((p) => `- ${p}`).join('\n')}\n\n### Recommendations\n${aiInsights.recommendations.map((r) => `- ${r}`).join('\n')}`;
-    if (auth.user) addActivity(auth.user.name, 'generated AI standup report', 'task');
+  const inviteMember = async (email: string, role: UserProfile['role']) => {
+    if (!activeWorkspace) return;
+    const result = await api.inviteMember(activeWorkspace.id, email, role);
+    await refreshData();
+    return result.inviteLink;
+  };
+
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'name' | 'bio' | 'skills' | 'avatar' | 'github'>>) => {
+    const user = await api.updateProfile(updates) as UserProfile;
+    setAuth((prev) => ({ ...prev, user }));
+    showToast('Profile updated');
+  };
+
+  const generateAIReport = useCallback(async () => {
+    if (!activeWorkspace) return { report: '', provider: 'local' as const };
+    const result = await api.generateStandup(activeWorkspace.id);
+    await refreshData();
+    return result;
+  }, [activeWorkspace, refreshData]);
+
+  const getTaskInsight = useCallback((taskId: string) => api.getTaskInsight(taskId), []);
+
+  const summarizeTaskComments = useCallback((taskId: string) => api.summarizeTaskComments(taskId), []);
+
+  const getCollaborationInsight = useCallback(async () => {
+    if (!activeWorkspace) return { insight: '', provider: 'local' as const };
+    return api.getCollaborationInsight(activeWorkspace.id);
+  }, [activeWorkspace]);
+
+  const getActivityDigest = useCallback(async () => {
+    if (!activeWorkspace) return { digest: '', provider: 'local' as const };
+    return api.getActivityDigest(activeWorkspace.id);
+  }, [activeWorkspace]);
+
+  const summarizeProject = async () => {
+    if (!activeWorkspace) return '';
+    const { summary } = await api.summarizeProject(activeWorkspace.id);
+    return summary;
+  };
+
+  const getBlockersReport = async () => {
+    if (!activeWorkspace) return '';
+    const { report } = await api.getBlockers(activeWorkspace.id);
     return report;
   };
 
-  const toggleSnippetFavorite = (snippetId: string) => {
-    setSnippets((items) =>
-      items.map((s) => (s.id === snippetId ? { ...s, favorite: !s.favorite } : s))
-    );
+  const generateTaskBreakdown = async (description: string, projectId: string) => {
+    if (!activeWorkspace) return 0;
+    const { count } = await api.generateTaskBreakdown(description, projectId, activeWorkspace.id);
+    await refreshData();
+    return count;
+  };
+
+  const analyzeCode = async (code: string, language: string) => {
+    return api.codeReview(code, language) as Promise<Record<string, unknown>>;
+  };
+
+  const getDocVersions = async (docId: string) => {
+    const { versions } = await api.getDocVersions(docId);
+    return versions;
+  };
+
+  const checkoutPro = async () => {
+    const result = await api.checkoutPro();
+    await refreshData();
+    showToast(result.message);
+  };
+
+  const refreshBilling = async () => {
+    const data = await api.getBillingPlan();
+    setSubscription({ plan: data.plan, limits: data.limits, usage: data.usage });
+  };
+
+  const toggleSnippetFavorite = async (snippetId: string) => {
+    const { favorite } = await api.toggleSnippetFavorite(snippetId);
+    setSnippets((items) => items.map((s) => (s.id === snippetId ? { ...s, favorite } : s)));
   };
 
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
@@ -542,12 +658,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         calendarEvents,
         aiInsights,
         analyticsData,
+        subscription,
         activeWorkspace,
+        loading,
+        backendOnline,
+        aiProvider,
+        aiConfigured,
         theme,
         sidebarCollapsed,
         notificationPanelOpen,
         commandPaletteOpen,
         quickActionModal,
+        quickActionProjectId,
         taskFilter,
         searchQuery,
         searchResults,
@@ -555,8 +677,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         signIn,
         signUp,
         signOut,
+        socialLogin,
         verifyOtp,
         createWorkspace,
+        updateWorkspace,
         selectWorkspace,
         markNotificationRead,
         markAllNotificationsRead,
@@ -565,14 +689,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateTask,
         deleteTask,
         addTaskComment,
+        generateTaskSubtasks,
+        balanceWorkload,
         createProject,
         updateProject,
         deleteProject,
         createSnippet,
         createDoc,
+        updateDoc,
         inviteMember,
+        updateProfile,
         generateAIReport,
+        getTaskInsight,
+        summarizeTaskComments,
+        getCollaborationInsight,
+        getActivityDigest,
+        summarizeProject,
+        getBlockersReport,
+        generateTaskBreakdown,
+        analyzeCode,
         toggleSnippetFavorite,
+        getDocVersions,
+        checkoutPro,
+        refreshBilling,
+        refreshData,
+        checkBackend,
         setTheme,
         toggleSidebar,
         setNotificationPanelOpen,
@@ -585,10 +726,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       {children}
-      {toast && (
-        <div className="toast-notification glass" role="status">
-          {toast}
-        </div>
+      {toast && <div className="toast-notification glass" role="status">{toast}</div>}
+      {loading && (
+        <div className="toast-notification glass" style={{ bottom: 80 }} role="status">Loading…</div>
       )}
     </AppContext.Provider>
   );

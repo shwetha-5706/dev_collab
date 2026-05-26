@@ -33,7 +33,7 @@ const AIInsightsPanel = () => {
       <div style={{ marginBottom: 14 }}>
         <strong style={{ fontSize: '0.85rem' }}>Predictions</strong>
         {aiInsights.predictions.map((p) => (
-          <p key={p} style={{ margin: '8px 0', fontSize: '0.85rem', opacity: 0.85 }}>🔮 {p}</p>
+          <p key={p} style={{ margin: '8px 0', fontSize: '0.85rem', opacity: 0.85 }}>{p}</p>
         ))}
       </div>
 

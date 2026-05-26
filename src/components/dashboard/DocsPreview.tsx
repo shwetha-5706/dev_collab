@@ -23,7 +23,7 @@ const DocsPreview = () => {
             </div>
             {doc.aiSummary && (
               <p style={{ fontSize: '0.82rem', opacity: 0.75, margin: '8px 0' }}>
-                🤖 {doc.aiSummary}
+                {doc.aiSummary}
               </p>
             )}
             <div style={{ fontSize: '0.75rem', opacity: 0.55 }}>

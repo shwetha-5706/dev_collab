@@ -37,13 +37,16 @@ export type UserProfile = {
   skills: string[];
   streak: number;
   badges?: string[];
+  github?: string;
 };
 
 export type MemberPresence = {
   userId: string;
+  userName?: string;
   status: 'Online' | 'Away' | 'Busy';
   activity?: string;
   viewingTask?: string;
+  viewingTaskId?: string;
 };
 
 export type Workspace = {
@@ -141,6 +144,9 @@ export type Snippet = {
   favorite: boolean;
   author: string;
   trending?: boolean;
+  description?: string;
+  workspaceId?: string;
+  projectId?: string;
 };
 
 export type DocPage = {
@@ -152,6 +158,24 @@ export type DocPage = {
   updatedAt: string;
   shared?: boolean;
   aiSummary?: string;
+  links?: string[];
+  workspaceId?: string;
+  projectId?: string;
+};
+
+export type DocVersion = {
+  id: string;
+  docId: string;
+  title: string;
+  body: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export type SubscriptionPlan = {
+  plan: 'free' | 'pro';
+  limits: { workspaces: number; projects: number; members: number; ai: boolean };
+  usage?: { workspaces: number; projects: number; members: number };
 };
 
 export type Notification = {

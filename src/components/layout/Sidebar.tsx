@@ -14,7 +14,18 @@ import {
   UserGroupIcon,
   ViewColumnsIcon,
 } from '@heroicons/react/24/outline';
-import { aiShortcuts, recentRoutes } from '../../data/mock';
+
+const recentRoutes = [
+  { path: '/board', label: 'Task Board' },
+  { path: '/projects', label: 'Projects' },
+  { path: '/assistant', label: 'AI Assistant' },
+];
+
+const aiShortcuts = [
+  { path: '/assistant', label: 'Sprint health' },
+  { path: '/analytics', label: 'Team analytics' },
+  { path: '/assistant', label: 'Code review' },
+];
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -71,14 +82,14 @@ const Sidebar = ({ collapsed, onToggle, workspaceName }: SidebarProps) => {
           <>
             <div className="sidebar-section-label">Recently visited</div>
             {recentRoutes.map((route) => (
-              <Link key={route.path} to={route.path} className="sidebar-link" style={{ fontSize: '0.85rem', opacity: 0.85 }}>
+              <Link key={route.path} to={route.path} className="sidebar-link text-secondary" style={{ fontSize: '0.85rem' }}>
                 {route.label}
               </Link>
             ))}
 
             <div className="sidebar-section-label">AI shortcuts</div>
             {aiShortcuts.map((shortcut) => (
-              <Link key={shortcut.path} to={shortcut.path} className="sidebar-link" style={{ fontSize: '0.85rem', opacity: 0.85 }}>
+              <Link key={shortcut.label} to={shortcut.path} className="sidebar-link text-secondary" style={{ fontSize: '0.85rem' }}>
                 <SparklesIcon width={16} />
                 {shortcut.label}
               </Link>

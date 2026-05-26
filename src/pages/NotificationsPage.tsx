@@ -34,7 +34,7 @@ const NotificationsPage = () => {
   const unread = notifications.filter((n) => !n.read).length;
 
   const typeIcon = (type: Notification['type']) => {
-    const icons = { mention: '@', assignment: '📋', deadline: '⏰', invite: '✉️', activity: '⚡' };
+    const icons = { mention: '@', assignment: 'A', deadline: 'D', invite: 'I', activity: 'N' };
     return icons[type];
   };
 
@@ -45,7 +45,7 @@ const NotificationsPage = () => {
           <div>
             <div className="overline">Notification Center</div>
             <h1 style={{ margin: '8px 0' }}>Notifications</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>{unread} unread · AI-ranked by importance</p>
+            <p className="page-lead">{unread} unread · AI-ranked by importance</p>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="glow-button secondary" onClick={markAllNotificationsRead}>Mark all read</button>
@@ -69,7 +69,7 @@ const NotificationsPage = () => {
 
       <div className="glass card">
         {muted && (
-          <div className="ai-insight-box" style={{ margin: 16 }}>🔕 Notifications are muted</div>
+          <div className="ai-insight-box" style={{ margin: 16 }}>Notifications are muted</div>
         )}
         {filtered.map((n) => (
           <div
@@ -82,15 +82,15 @@ const NotificationsPage = () => {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span>{n.text}</span>
-                  {n.priority === 'high' && <span className="small-badge" style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5' }}>High</span>}
+                  {n.priority === 'high' && <span className="small-badge badge-danger">High</span>}
                 </div>
-                <div style={{ fontSize: '0.78rem', opacity: 0.6, marginTop: 4 }}>{n.time}</div>
+                <div className="text-xs-muted" style={{ marginTop: 4 }}>{n.time}</div>
               </div>
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p style={{ textAlign: 'center', opacity: 0.6, padding: 40 }}>No notifications</p>
+          <p className="empty-state">No notifications</p>
         )}
       </div>
     </div>

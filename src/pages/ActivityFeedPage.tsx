@@ -1,6 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
 import { AppContext } from '../contexts/AppContext';
-import { users } from '../data/mock';
 
 const ActivityFeedPage = () => {
   const ctx = useContext(AppContext);
@@ -10,7 +9,7 @@ const ActivityFeedPage = () => {
 
   if (!ctx) return null;
 
-  const { activities, projects } = ctx;
+  const { activities, projects, activeWorkspace } = ctx;
 
   const filtered = useMemo(() => {
     return activities.filter((a) => {
@@ -33,7 +32,7 @@ const ActivityFeedPage = () => {
       <div className="page-header glass section" style={{ padding: 24, borderRadius: 20 }}>
         <div className="overline">Activity Feed</div>
         <h1 style={{ margin: '8px 0' }}>Team Activity</h1>
-        <p style={{ opacity: 0.75, margin: 0 }}>Live timeline of everything happening across your workspace</p>
+        <p className="page-lead">Live timeline of everything happening across your workspace</p>
       </div>
 
       <div className="glass card section">
@@ -55,7 +54,7 @@ const ActivityFeedPage = () => {
         </select>
         <select className="input-field" style={{ width: 'auto' }} value={memberFilter} onChange={(e) => setMemberFilter(e.target.value)}>
           <option value="all">All members</option>
-          {users.map((u) => (
+          {activeWorkspace?.members.map((u) => (
             <option key={u.id} value={u.name}>{u.name}</option>
           ))}
         </select>

@@ -1,4 +1,6 @@
 import { useContext, useState } from 'react';
+import { StarIcon } from '@heroicons/react/24/outline';
+import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 import { AppContext } from '../../contexts/AppContext';
 
 const SnippetPreview = () => {
@@ -18,7 +20,7 @@ const SnippetPreview = () => {
 
       {trending.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div className="small-badge" style={{ marginBottom: 8 }}>🔥 Trending</div>
+          <div className="small-badge" style={{ marginBottom: 8 }}>Trending</div>
           {trending.map((s) => (
             <div key={s.id} style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: 4 }}>{s.title}</div>
           ))}
@@ -42,7 +44,7 @@ const SnippetPreview = () => {
                 onClick={() => toggleSnippetFavorite(snippet.id)}
                 style={{ background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer' }}
               >
-                {snippet.favorite ? '★' : '☆'}
+                {snippet.favorite ? <StarSolid width={16} style={{ color: '#fde047' }} /> : <StarIcon width={16} />}
               </button>
             </div>
             <div style={{ fontSize: '0.78rem', opacity: 0.6, marginTop: 4 }}>

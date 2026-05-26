@@ -12,20 +12,7 @@ type CodeReview = {
   bugs: string[];
   optimizations: string[];
   securityIssues: string[];
-};
-
-const mockAnalyze = (code: string, lang: string): CodeReview => {
-  const lines = code.split('\n').length;
-  const hasEval = code.includes('eval(');
-  const hasConsole = code.includes('console.log');
-  return {
-    qualityScore: Math.min(95, 60 + lines * 2 + (code.includes('try') ? 10 : 0)),
-    readability: Math.min(90, 70 + (code.includes('//') ? 10 : 0)),
-    security: hasEval ? 'high' : code.includes('password') ? 'medium' : 'low',
-    bugs: hasConsole ? ['Remove debug console.log statements'] : [],
-    optimizations: lines > 20 ? ['Consider splitting into smaller functions', 'Add error handling for edge cases'] : ['Code looks concise — good job!'],
-    securityIssues: hasEval ? ['Avoid eval() — use JSON.parse or safe alternatives'] : [],
-  };
+  suggestions?: string[];
 };
 
 const AIAssistantPage = () => {
@@ -36,26 +23,32 @@ const AIAssistantPage = () => {
   const [lang, setLang] = useState('JavaScript');
   const [review, setReview] = useState<CodeReview | null>(null);
   const [report, setReport] = useState('');
+  const [featureDesc, setFeatureDesc] = useState('Build a login system');
+  const [breakdownProject, setBreakdownProject] = useState('');
+
+  useEffect(() => {
+    if (!ctx) return;
+    const action = searchParams.get('action');
+    if (action === 'standup') {
+      ctx.generateAIReport().then((r) => setReport(r.report));
+      setTab('assistant');
+    } else if (action === 'blockers') {
+      ctx.getBlockersReport().then(setReport);
+      setTab('assistant');
+    }
+  }, [searchParams, ctx]);
 
   if (!ctx) return null;
 
-  const { aiInsights, tasks, generateAIReport, showToast } = ctx;
+  const { aiInsights, tasks, projects, generateAIReport, summarizeProject, getBlockersReport, generateTaskBreakdown, analyzeCode, showToast, subscription, activeWorkspace } = ctx;
 
-  useEffect(() => {
-    const action = searchParams.get('action');
-    if (action === 'standup') {
-      setReport(generateAIReport());
-      setTab('assistant');
-    } else if (action === 'blockers') {
-      setReport(`## Blockers Detected\n\n- ${aiInsights.blockedTasks} tasks are blocked\n- Real-time Sync Engine at high risk\n- WebSocket pool is overdue\n\n### Recommendations\n${aiInsights.recommendations.map((r) => `- ${r}`).join('\n')}`);
-      setTab('assistant');
-    }
-  }, [searchParams]);
+  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspace?.id);
 
   const overdue = tasks.filter((t) => t.dueDate < new Date().toISOString().slice(0, 10) && t.status !== 'Done');
 
-  const runReview = () => {
-    setReview(mockAnalyze(code, lang));
+  const runReview = async () => {
+    const result = await analyzeCode(code, lang) as CodeReview;
+    setReview(result);
     showToast('AI code review complete');
   };
 
@@ -64,7 +57,7 @@ const AIAssistantPage = () => {
       <div className="page-header glass section" style={{ padding: 24, borderRadius: 20 }}>
         <div className="overline">AI Project Assistant</div>
         <h1 style={{ margin: '8px 0' }}>AI Copilot</h1>
-        <p style={{ opacity: 0.75, margin: 0 }}>Standups, blockers, sprint health, and code review — powered by AI</p>
+        <p className="page-lead">Standups, blockers, sprint health, and code review — powered by AI</p>
       </div>
 
       <div className="filter-tabs">
@@ -102,13 +95,50 @@ const AIAssistantPage = () => {
           <div className="glass card">
             <div className="overline">Quick Actions</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-              <button className="glow-button" onClick={() => setReport(generateAIReport())}>Generate Standup</button>
-              <button className="glow-button secondary" onClick={() => showToast('AI task breakdown generated for 3 projects')}>Auto Task Breakdown</button>
-              <button className="glow-button secondary" onClick={() => showToast('Productivity focus mode enabled')}>Enable Focus Mode</button>
+              <button className="glow-button" onClick={() => generateAIReport().then((r) => setReport(r.report))}>Generate Standup</button>
+              <button className="glow-button secondary" onClick={() => summarizeProject().then(setReport)}>Summarise This Project</button>
+              <button className="glow-button secondary" onClick={() => getBlockersReport().then(setReport)}>What's Blocking Us?</button>
             </div>
 
+            <div className="overline" style={{ marginTop: 24 }}>Auto Task Breakdown</div>
+            <textarea
+              className="input-field"
+              rows={2}
+              value={featureDesc}
+              onChange={(e) => setFeatureDesc(e.target.value)}
+              placeholder="Describe a feature…"
+              style={{ marginTop: 8 }}
+            />
+            <select
+              className="input-field"
+              style={{ marginTop: 8 }}
+              value={breakdownProject || workspaceProjects[0]?.id || ''}
+              onChange={(e) => setBreakdownProject(e.target.value)}
+            >
+              {workspaceProjects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <button
+              className="glow-button secondary"
+              style={{ marginTop: 8 }}
+              onClick={async () => {
+                const pid = breakdownProject || workspaceProjects[0]?.id;
+                if (!pid) return;
+                const count = await generateTaskBreakdown(featureDesc, pid);
+                showToast(`AI created ${count} subtasks`);
+              }}
+            >
+              Generate Tasks from Feature
+            </button>
+            {!subscription.limits.ai && (
+              <div className="small-badge badge-warning" style={{ marginTop: 12 }}>
+                Code review & task breakdown require Pro · Standup reports are free
+              </div>
+            )}
+
             <div className="overline" style={{ marginTop: 24 }}>AI Predictions</div>
-            <ul style={{ paddingLeft: 18, opacity: 0.85, fontSize: '0.9rem' }}>
+            <ul className="list-muted">
               {aiInsights.predictions.map((p, i) => (
                 <li key={i} style={{ marginBottom: 8 }}>{p}</li>
               ))}
@@ -117,8 +147,8 @@ const AIAssistantPage = () => {
 
           {report && (
             <div className="glass card" style={{ gridColumn: '1 / -1' }}>
-              <div className="overline">Generated Report</div>
-              <pre className="report-preview" style={{ maxHeight: 400 }}>{report}</pre>
+              <div className="overline">Generated Standup Report</div>
+              <pre className="report-preview standup-report" style={{ maxHeight: 400 }}>{report}</pre>
             </div>
           )}
         </div>
@@ -146,8 +176,8 @@ const AIAssistantPage = () => {
               <div className="overline">Review Report</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, margin: '16px 0' }}>
                 <div className="stat-card">
-                  <div className="stat-value">{review.qualityScore}</div>
-                  <div className="stat-label">Quality</div>
+                  <div className="stat-value">{review.qualityScore}/10</div>
+                  <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">{review.readability}</div>
@@ -163,18 +193,25 @@ const AIAssistantPage = () => {
 
               {review.bugs.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: '0.95rem' }}>🐛 Bug Detection</h3>
-                  <ul style={{ fontSize: '0.88rem', opacity: 0.85 }}>{review.bugs.map((b, i) => <li key={i}>{b}</li>)}</ul>
+                  <h3 style={{ fontSize: '0.95rem' }}>Bug Detection</h3>
+                  <ul className="list-muted">{review.bugs.map((b, i) => <li key={i}>{b}</li>)}</ul>
                 </>
               )}
 
-              <h3 style={{ fontSize: '0.95rem' }}>⚡ Optimizations</h3>
-              <ul style={{ fontSize: '0.88rem', opacity: 0.85 }}>{review.optimizations.map((o, i) => <li key={i}>{o}</li>)}</ul>
+              <h3 style={{ fontSize: '0.95rem' }}>Optimizations</h3>
+              <ul className="list-muted">{review.optimizations.map((o, i) => <li key={i}>{o}</li>)}</ul>
 
               {review.securityIssues.length > 0 && (
                 <>
-                  <h3 style={{ fontSize: '0.95rem' }}>🔒 Security</h3>
-                  <ul style={{ fontSize: '0.88rem', opacity: 0.85 }}>{review.securityIssues.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                  <h3 style={{ fontSize: '0.95rem' }}>Security</h3>
+                  <ul className="list-muted">{review.securityIssues.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                </>
+              )}
+
+              {review.suggestions && review.suggestions.length > 0 && (
+                <>
+                  <h3 style={{ fontSize: '0.95rem' }}>Suggestions</h3>
+                  <ul className="list-muted">{review.suggestions.map((s, i) => <li key={i}>{s}</li>)}</ul>
                 </>
               )}
             </div>

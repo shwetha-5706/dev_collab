@@ -22,7 +22,7 @@ const AnalyticsPage = () => {
           <div>
             <div className="overline">Analytics Dashboard</div>
             <h1 style={{ margin: '8px 0' }}>Productivity Analytics</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>Team performance, workload metrics, and AI-powered insights</p>
+            <p className="page-lead">Team performance, workload metrics, and AI-powered insights</p>
           </div>
           <div className="filter-tabs" style={{ margin: 0 }}>
             {(['daily', 'weekly', 'monthly'] as const).map((r) => (
@@ -76,7 +76,7 @@ const AnalyticsPage = () => {
             <div className="sprint-meter-fill" style={{ width: `${aiInsights.sprintHealth}%` }} />
           </div>
           <div className="ai-insight-box" style={{ marginTop: 20 }}>
-            🔮 Burnout prediction: {aiInsights.burnoutRisk} risk · Team mood: {aiInsights.teamMood}
+            Burnout prediction: {aiInsights.burnoutRisk} risk · Team mood: {aiInsights.teamMood}
           </div>
         </div>
       </div>

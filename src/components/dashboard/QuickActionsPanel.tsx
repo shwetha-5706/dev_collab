@@ -2,13 +2,13 @@ import { useContext } from 'react';
 import { AppContext } from '../../contexts/AppContext';
 import type { QuickActionType } from '../../types';
 
-const actions: { type: QuickActionType; label: string; icon: string; shortcut: string }[] = [
-  { type: 'task', label: 'Create Task', icon: '✓', shortcut: 'T' },
-  { type: 'project', label: 'Create Project', icon: '🚀', shortcut: 'P' },
-  { type: 'invite', label: 'Invite Member', icon: '👤', shortcut: 'I' },
-  { type: 'snippet', label: 'Add Snippet', icon: '📝', shortcut: 'S' },
-  { type: 'document', label: 'Create Document', icon: '📄', shortcut: 'D' },
-  { type: 'report', label: 'Generate AI Report', icon: '🤖', shortcut: 'R' },
+const actions: { type: QuickActionType; label: string; desc: string }[] = [
+  { type: 'task', label: 'New task', desc: 'Add to board' },
+  { type: 'project', label: 'New project', desc: 'Start sprint' },
+  { type: 'invite', label: 'Invite', desc: 'Add member' },
+  { type: 'snippet', label: 'Snippet', desc: 'Save code' },
+  { type: 'document', label: 'Wiki page', desc: 'Write docs' },
+  { type: 'report', label: 'Standup', desc: 'AI report' },
 ];
 
 const QuickActionsPanel = () => {
@@ -17,24 +17,28 @@ const QuickActionsPanel = () => {
   const { setQuickActionModal } = ctx;
 
   return (
-    <div className="glass card section">
-      <div className="overline">Quick Actions</div>
-      <h2 style={{ margin: '8px 0 16px' }}>Create instantly</h2>
-      <div className="grid-columns">
+    <section className="dashboard-panel dashboard-panel-fill">
+      <div className="dashboard-panel-head">
+        <div>
+          <p className="dashboard-eyebrow">Shortcuts</p>
+          <h2 className="dashboard-panel-title">Quick actions</h2>
+        </div>
+      </div>
+
+      <div className="dashboard-action-grid">
         {actions.map((action) => (
           <button
             key={action.type}
-            className="glow-button secondary"
-            style={{ flexDirection: 'column', padding: '16px', gap: 6 }}
+            type="button"
+            className="dashboard-action-box"
             onClick={() => setQuickActionModal(action.type)}
           >
-            <span style={{ fontSize: '1.4rem' }}>{action.icon}</span>
-            <span style={{ fontSize: '0.82rem' }}>{action.label}</span>
-            <span style={{ fontSize: '0.68rem', opacity: 0.5 }}>⌘{action.shortcut}</span>
+            <span className="dashboard-action-label">{action.label}</span>
+            <span className="dashboard-action-desc">{action.desc}</span>
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 

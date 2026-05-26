@@ -1,5 +1,6 @@
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { AppContext } from '../contexts/AppContext';
+import UserAvatar from '../components/UserAvatar';
 
 const SKILLS_OPTIONS = ['React', 'TypeScript', 'Node.js', 'Python', 'Docker', 'AWS', 'Figma', 'CSS', 'Go', 'Java'];
 
@@ -9,10 +10,15 @@ const ProfilePage = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [github, setGithub] = useState('');
 
+  const user = ctx?.auth.user;
+
+  useEffect(() => {
+    if (user?.github) setGithub(user.github);
+  }, [user?.github]);
+
   if (!ctx) return null;
 
-  const { auth, tasks, showToast } = ctx;
-  const user = auth.user;
+  const { tasks, updateProfile } = ctx;
 
   const stats = useMemo(() => {
     const assigned = tasks.filter((t) => t.assignees.some((a) => a.id === user?.id));
@@ -26,6 +32,10 @@ const ProfilePage = () => {
 
   const skillRadar = skills.length ? skills : user?.skills ?? [];
 
+  useEffect(() => {
+    if (user?.github) setGithub(user.github);
+  }, [user?.github]);
+
   const toggleSkill = (s: string) => {
     setSkills((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
@@ -34,16 +44,16 @@ const ProfilePage = () => {
     <div>
       <div className="hero-panel glass section">
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-          <img src={user?.avatar} alt={user?.name} className="avatar-pill" style={{ width: 96, height: 96 }} />
+          <UserAvatar name={user?.name ?? 'User'} size="xl" />
           <div style={{ flex: 1 }}>
             <div className="overline">Developer Profile</div>
             <h1 style={{ margin: '8px 0' }}>{user?.name}</h1>
-            <p style={{ opacity: 0.8 }}>{user?.email}</p>
+            <p className="text-secondary">{user?.email}</p>
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <span className="small-badge">{user?.role}</span>
-              <span className="small-badge">🔥 {user?.streak ?? 0} day streak</span>
+              <span className="small-badge">{user?.streak ?? 0} day streak</span>
               {user?.badges?.map((b) => (
-                <span key={b} className="small-badge">🏆 {b}</span>
+                <span key={b} className="small-badge">{b}</span>
               ))}
             </div>
           </div>
@@ -79,10 +89,17 @@ const ProfilePage = () => {
             <input
               className="input-field"
               placeholder="GitHub username"
-              value={github}
+              value={github || user?.github || ''}
               onChange={(e) => setGithub(e.target.value)}
             />
-            <button className="glow-button" onClick={() => showToast('Profile updated')}>Save profile</button>
+            {github && (
+              <a href={`https://github.com/${github}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                github.com/{github}
+              </a>
+            )}
+            <button className="glow-button" onClick={() => updateProfile({ bio: bio || user?.bio, skills: skillRadar, github: github || user?.github })}>
+              Save profile
+            </button>
           </div>
 
           <div className="overline" style={{ marginTop: 24 }}>Skills</div>
@@ -122,7 +139,7 @@ const ProfilePage = () => {
           </div>
 
           <div className="ai-insight-box" style={{ marginTop: 24 }}>
-            ✨ AI Insight: Strong in {skillRadar.slice(0, 2).join(' & ') || 'full-stack development'}. Consider mentoring on upcoming sprints.
+            AI Insight: Strong in {skillRadar.slice(0, 2).join(' & ') || 'full-stack development'}. Consider mentoring on upcoming sprints.
           </div>
 
           <div className="overline" style={{ marginTop: 24 }}>Contribution Graph</div>

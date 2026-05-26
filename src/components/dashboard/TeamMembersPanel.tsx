@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { AppContext } from '../../contexts/AppContext';
+import UserAvatar from '../UserAvatar';
 
 const TeamMembersPanel = () => {
   const ctx = useContext(AppContext);
@@ -20,7 +21,7 @@ const TeamMembersPanel = () => {
           return (
             <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ position: 'relative' }}>
-                <img src={member.avatar} alt={member.name} className="avatar-pill lg" />
+                <UserAvatar name={member.name} size="lg" />
                 <span
                   style={{
                     position: 'absolute',

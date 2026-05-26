@@ -1,5 +1,7 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AppContext } from '../../contexts/AppContext';
+import { ApiError } from '../../api/client';
 import type { QuickActionType, Task } from '../../types';
 
 const titles: Record<QuickActionType, string> = {
@@ -15,6 +17,7 @@ const QuickActionModal = () => {
   const ctx = useContext(AppContext);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskStatus, setTaskStatus] = useState<Task['status']>('To Do');
+  const [taskProjectId, setTaskProjectId] = useState('');
   const [projectName, setProjectName] = useState('');
   const [projectDeadline, setProjectDeadline] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -25,10 +28,12 @@ const QuickActionModal = () => {
   const [docTitle, setDocTitle] = useState('');
   const [docBody, setDocBody] = useState('');
   const [reportPreview, setReportPreview] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   if (!ctx) return null;
   const {
     quickActionModal,
+    quickActionProjectId,
     setQuickActionModal,
     createTask,
     createProject,
@@ -41,6 +46,16 @@ const QuickActionModal = () => {
     showToast,
   } = ctx;
 
+  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspace?.id);
+
+  useEffect(() => {
+    if (!quickActionModal) return;
+    const preferred = quickActionProjectId && workspaceProjects.some((p) => p.id === quickActionProjectId)
+      ? quickActionProjectId
+      : workspaceProjects[0]?.id ?? '';
+    setTaskProjectId(preferred);
+  }, [quickActionModal, quickActionProjectId, workspaceProjects]);
+
   if (!quickActionModal) return null;
 
   const resetAndClose = () => {
@@ -52,57 +67,72 @@ const QuickActionModal = () => {
     setDocTitle('');
     setDocBody('');
     setReportPreview('');
+    setSubmitting(false);
     setQuickActionModal(null);
   };
 
-  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspace?.id);
-  const defaultProjectId = workspaceProjects[0]?.id ?? '';
-
-  const handleCreate = () => {
-    switch (quickActionModal) {
-      case 'task':
-        if (!taskTitle.trim() || !defaultProjectId) return;
-        createTask({ title: taskTitle.trim(), projectId: defaultProjectId, status: taskStatus });
-        showToast('Task created');
-        break;
-      case 'project':
-        if (!projectName.trim()) return;
-        createProject({
-          name: projectName.trim(),
-          deadline: projectDeadline || new Date().toISOString().slice(0, 10),
-          stack: [],
-          priority: 'P2',
-          visibility: 'Private',
-        });
-        showToast('Project created');
-        break;
-      case 'invite':
-        if (!inviteEmail.trim()) return;
-        inviteMember(inviteEmail.trim(), inviteRole);
-        showToast(`Invite sent to ${inviteEmail}`);
-        break;
-      case 'snippet':
-        if (!snippetTitle.trim()) return;
-        createSnippet({ title: snippetTitle.trim(), language: snippetLang, code: snippetCode || '// new snippet' });
-        showToast('Snippet added');
-        break;
-      case 'document':
-        if (!docTitle.trim()) return;
-        createDoc({ title: docTitle.trim(), body: docBody || 'Start writing…' });
-        showToast('Document created');
-        break;
-      case 'report': {
-        if (reportPreview) {
-          resetAndClose();
+  const handleCreate = async () => {
+    setSubmitting(true);
+    try {
+      switch (quickActionModal) {
+        case 'task':
+          if (!taskTitle.trim()) {
+            showToast('Enter a task title');
+            return;
+          }
+          if (!taskProjectId) {
+            showToast('Create a project first, then add tasks to it');
+            return;
+          }
+          await createTask({ title: taskTitle.trim(), projectId: taskProjectId, status: taskStatus });
+          showToast('Task created');
+          break;
+        case 'project':
+          if (!projectName.trim()) {
+            showToast('Enter a project name');
+            return;
+          }
+          await createProject({
+            name: projectName.trim(),
+            deadline: projectDeadline || new Date().toISOString().slice(0, 10),
+            stack: [],
+            priority: 'P2',
+            visibility: 'Private',
+          });
+          showToast('Project created');
+          break;
+        case 'invite':
+          if (!inviteEmail.trim()) return;
+          await inviteMember(inviteEmail.trim(), inviteRole);
+          showToast(`Invite sent to ${inviteEmail}`);
+          break;
+        case 'snippet':
+          if (!snippetTitle.trim()) return;
+          await createSnippet({ title: snippetTitle.trim(), language: snippetLang, code: snippetCode || '// new snippet' });
+          showToast('Snippet added');
+          break;
+        case 'document':
+          if (!docTitle.trim()) return;
+          await createDoc({ title: docTitle.trim(), body: docBody || 'Start writing…' });
+          showToast('Document created');
+          break;
+        case 'report': {
+          if (reportPreview) {
+            resetAndClose();
+            return;
+          }
+          const result = await generateAIReport();
+          setReportPreview(result.report);
+          showToast('AI report generated');
           return;
         }
-        const report = generateAIReport();
-        setReportPreview(report);
-        showToast('AI report generated');
-        return;
       }
+      resetAndClose();
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Action failed — is the backend running?');
+    } finally {
+      setSubmitting(false);
     }
-    resetAndClose();
   };
 
   return (
@@ -113,13 +143,33 @@ const QuickActionModal = () => {
 
         {quickActionModal === 'task' && (
           <>
-            <input className="input-field" placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
-            <select className="input-field" value={taskStatus} onChange={(e) => setTaskStatus(e.target.value as Task['status'])}>
-              <option>To Do</option>
-              <option>In Progress</option>
-              <option>In Review</option>
-              <option>Done</option>
-            </select>
+            {workspaceProjects.length === 0 ? (
+              <div className="surface-card" style={{ marginBottom: 12 }}>
+                <p className="page-lead" style={{ marginBottom: 12 }}>You need a project before adding tasks.</p>
+                <Link to="/projects" className="glow-button" style={{ display: 'inline-flex' }} onClick={resetAndClose}>
+                  Go to Projects
+                </Link>
+              </div>
+            ) : (
+              <>
+                <select
+                  className="input-field"
+                  value={taskProjectId}
+                  onChange={(e) => setTaskProjectId(e.target.value)}
+                >
+                  {workspaceProjects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <input className="input-field" placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
+                <select className="input-field" value={taskStatus} onChange={(e) => setTaskStatus(e.target.value as Task['status'])}>
+                  <option>To Do</option>
+                  <option>In Progress</option>
+                  <option>In Review</option>
+                  <option>Done</option>
+                </select>
+              </>
+            )}
           </>
         )}
         {quickActionModal === 'project' && (
@@ -158,7 +208,7 @@ const QuickActionModal = () => {
         )}
         {quickActionModal === 'report' && (
           <>
-            <p style={{ opacity: 0.8, fontSize: '0.9rem' }}>
+            <p className="page-header-desc">
               AI will analyze task movement, team activity, and sprint health to generate your standup report.
             </p>
             {reportPreview && (
@@ -168,8 +218,13 @@ const QuickActionModal = () => {
         )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button className="glow-button" style={{ flex: 1 }} onClick={handleCreate}>
-            {quickActionModal === 'report' ? (reportPreview ? 'Close' : 'Generate') : 'Create'}
+          <button
+            className="glow-button"
+            style={{ flex: 1 }}
+            onClick={handleCreate}
+            disabled={submitting || (quickActionModal === 'task' && workspaceProjects.length === 0)}
+          >
+            {submitting ? 'Saving…' : quickActionModal === 'report' ? (reportPreview ? 'Close' : 'Generate') : 'Create'}
           </button>
           <button className="glow-button secondary" style={{ flex: 1 }} onClick={resetAndClose}>
             Cancel
