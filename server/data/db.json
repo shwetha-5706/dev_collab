@@ -129,7 +129,9 @@
       "icon": "🌐",
       "memberIds": [
         "u-01",
-        "u-02"
+        "u-02",
+        "u-03",
+        "u-04"
       ],
       "settings": {
         "allowInvites": true,
@@ -182,6 +184,16 @@
       "workspaceId": "ws-103",
       "userId": "u-02",
       "role": "Admin"
+    },
+    {
+      "workspaceId": "ws-103",
+      "userId": "u-03",
+      "role": "Member"
+    },
+    {
+      "workspaceId": "ws-103",
+      "userId": "u-04",
+      "role": "Member"
     }
   ],
   "projects": [
@@ -201,7 +213,7 @@
       "health": 15,
       "progress": 0,
       "visibility": "Public",
-      "openTasks": 3,
+      "openTasks": 4,
       "riskLevel": "low"
     },
     {
@@ -217,10 +229,10 @@
       ],
       "priority": "P0",
       "owner": "Rahul",
-      "health": 85,
-      "progress": 95,
+      "health": 82,
+      "progress": 67,
       "visibility": "Private",
-      "openTasks": 2,
+      "openTasks": 1,
       "riskLevel": "low"
     },
     {
@@ -236,11 +248,11 @@
       ],
       "priority": "P1",
       "owner": "Shwetha",
-      "health": 71,
-      "progress": 45,
+      "health": 15,
+      "progress": 0,
       "visibility": "Public",
-      "openTasks": 12,
-      "riskLevel": "medium"
+      "openTasks": 2,
+      "riskLevel": "low"
     },
     {
       "id": "p-14",
@@ -255,11 +267,11 @@
       ],
       "priority": "P1",
       "owner": "Arjun",
-      "health": 58,
-      "progress": 32,
+      "health": 15,
+      "progress": 0,
       "visibility": "Private",
-      "openTasks": 15,
-      "riskLevel": "high"
+      "openTasks": 1,
+      "riskLevel": "low"
     },
     {
       "id": "p-1779820200920-nukoy",
@@ -277,6 +289,36 @@
       "visibility": "Private",
       "openTasks": 1,
       "riskLevel": "high"
+    },
+    {
+      "id": "p-1779857588790-w62qc",
+      "workspaceId": "ws-101",
+      "name": "project 1",
+      "banner": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-05-27",
+      "stack": [],
+      "priority": "P2",
+      "owner": "Shwetha",
+      "health": 100,
+      "progress": 0,
+      "visibility": "Private",
+      "openTasks": 0,
+      "riskLevel": "low"
+    },
+    {
+      "id": "p-1779857739602-4qgoy",
+      "workspaceId": "ws-101",
+      "name": "project 2",
+      "banner": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80",
+      "deadline": "2026-05-27",
+      "stack": [],
+      "priority": "P2",
+      "owner": "Shwetha",
+      "health": 100,
+      "progress": 0,
+      "visibility": "Private",
+      "openTasks": 0,
+      "riskLevel": "low"
     }
   ],
   "tasks": [
@@ -460,7 +502,9 @@
       "estimate": "6h",
       "comments": [],
       "history": [
-        "Created by Shwetha"
+        "Created by Shwetha",
+        "Status changed to In Progress",
+        "Status changed to To Do"
       ],
       "subtasks": [],
       "checklist": [],
@@ -498,6 +542,48 @@
       "status": "To Do",
       "priority": "P2",
       "dueDate": "2026-05-26",
+      "labels": [],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "2h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-1779857159213-xcj9u",
+      "projectId": "p-11",
+      "title": "task 1",
+      "description": "",
+      "status": "To Do",
+      "priority": "P2",
+      "dueDate": "2026-05-27",
+      "labels": [],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "2h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
+    },
+    {
+      "id": "t-1779857542637-a8n2z",
+      "projectId": "p-12",
+      "title": "task 1",
+      "description": "",
+      "status": "In Progress",
+      "priority": "P2",
+      "dueDate": "2026-05-27",
       "labels": [],
       "assigneeIds": [
         "u-01"
@@ -604,6 +690,52 @@
   ],
   "notifications": [
     {
+      "id": "n-1779858080821-02fy4",
+      "userId": "u-01",
+      "read": false,
+      "time": "Just now",
+      "type": "invite",
+      "text": "Arjun accepted your invite to Open Source Lab",
+      "priority": "medium"
+    },
+    {
+      "id": "n-1779858080628-xfkae",
+      "userId": "u-01",
+      "read": false,
+      "time": "Just now",
+      "type": "invite",
+      "text": "Invitation sent to arjun@devcollab.io — waiting for acceptance",
+      "priority": "low"
+    },
+    {
+      "id": "n-1779858080627-iwyjg",
+      "userId": "u-04",
+      "read": false,
+      "time": "Just now",
+      "type": "invite",
+      "text": "Shwetha invited you to join Open Source Lab",
+      "priority": "high",
+      "inviteToken": "inv-1779858080624-7uvmv"
+    },
+    {
+      "id": "n-1779858003762-mw2xd",
+      "userId": "u-01",
+      "read": false,
+      "time": "Just now",
+      "type": "invite",
+      "text": "Invitation sent to priya@devcollab.io as Member",
+      "priority": "low"
+    },
+    {
+      "id": "n-1779858003762-musgo",
+      "userId": "u-03",
+      "read": false,
+      "time": "Just now",
+      "type": "invite",
+      "text": "Shwetha invited you to Open Source Lab",
+      "priority": "low"
+    },
+    {
       "id": "n-1",
       "userId": "u-01",
       "type": "mention",
@@ -653,6 +785,91 @@
     }
   ],
   "activities": [
+    {
+      "id": "a-1779858080820-7vkk6",
+      "workspaceId": "ws-103",
+      "user": "Arjun",
+      "message": "joined Open Source Lab",
+      "timestamp": "Just now",
+      "type": "member"
+    },
+    {
+      "id": "a-1779858080625-shzfv",
+      "workspaceId": "ws-103",
+      "user": "Shwetha",
+      "message": "invited arjun@devcollab.io as Member (pending)",
+      "timestamp": "Just now",
+      "type": "member"
+    },
+    {
+      "id": "a-1779858003762-0fl0v",
+      "workspaceId": "ws-103",
+      "user": "Shwetha",
+      "message": "invited priya@devcollab.io as Member",
+      "timestamp": "Just now",
+      "type": "member"
+    },
+    {
+      "id": "a-1779857739604-c3kfj",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created project \"project 2\"",
+      "timestamp": "Just now",
+      "type": "task"
+    },
+    {
+      "id": "a-1779857588792-6q908",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created project \"project 1\"",
+      "timestamp": "Just now",
+      "type": "task"
+    },
+    {
+      "id": "a-1779857542639-ecd7t",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created task \"task 1\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "Login API"
+    },
+    {
+      "id": "a-1779857159214-14yr3",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created task \"task 1\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "DevCollab Dashboard"
+    },
+    {
+      "id": "a-1779823708488-rat5q",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "updated task \"Burnout detection model\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "AI Assistant Module"
+    },
+    {
+      "id": "a-1779823707104-600jt",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "updated task \"Burnout detection model\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "AI Assistant Module"
+    },
+    {
+      "id": "a-1779823706133-9112s",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "updated task \"WebSocket connection pool\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "Real-time Sync Engine"
+    },
     {
       "id": "a-1779820200928-7hj0d",
       "workspaceId": "ws-101",
@@ -803,6 +1020,19 @@
       "status": "Busy",
       "activity": "Deploying to staging",
       "viewingTask": "WebSocket connection pool"
+    }
+  ],
+  "pendingInvites": [
+    {
+      "id": "inv-1779858080624-6auou",
+      "token": "inv-1779858080624-7uvmv",
+      "workspaceId": "ws-103",
+      "email": "arjun@devcollab.io",
+      "role": "Member",
+      "status": "accepted",
+      "createdBy": "u-01",
+      "createdAt": 1779858080625,
+      "expiresAt": 1780462880625
     }
   ]
 }

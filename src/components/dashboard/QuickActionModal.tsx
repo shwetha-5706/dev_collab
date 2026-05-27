@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppContext } from '../../contexts/AppContext';
 import { ApiError } from '../../api/client';
+import ThemeSelect from '../ThemeSelect';
 import type { QuickActionType, Task } from '../../types';
 
 const titles: Record<QuickActionType, string> = {
@@ -47,6 +48,31 @@ const QuickActionModal = () => {
   } = ctx;
 
   const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspace?.id);
+
+  const projectOptions = useMemo(
+    () => workspaceProjects.map((p) => ({ value: p.id, label: p.name })),
+    [workspaceProjects]
+  );
+
+  const statusOptions: { value: Task['status']; label: Task['status'] }[] = [
+    { value: 'To Do', label: 'To Do' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'In Review', label: 'In Review' },
+    { value: 'Done', label: 'Done' },
+  ];
+
+  const inviteRoleOptions = [
+    { value: 'Member', label: 'Member' },
+    { value: 'Admin', label: 'Admin' },
+    { value: 'Viewer', label: 'Viewer' },
+  ] as const;
+
+  const snippetLangOptions = [
+    { value: 'TypeScript', label: 'TypeScript' },
+    { value: 'JavaScript', label: 'JavaScript' },
+    { value: 'Python', label: 'Python' },
+    { value: 'CSS', label: 'CSS' },
+  ];
 
   useEffect(() => {
     if (!quickActionModal) return;
@@ -152,22 +178,17 @@ const QuickActionModal = () => {
               </div>
             ) : (
               <>
-                <select
-                  className="input-field"
+                <ThemeSelect
                   value={taskProjectId}
-                  onChange={(e) => setTaskProjectId(e.target.value)}
-                >
-                  {workspaceProjects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={setTaskProjectId}
+                  options={projectOptions}
+                />
                 <input className="input-field" placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
-                <select className="input-field" value={taskStatus} onChange={(e) => setTaskStatus(e.target.value as Task['status'])}>
-                  <option>To Do</option>
-                  <option>In Progress</option>
-                  <option>In Review</option>
-                  <option>Done</option>
-                </select>
+                <ThemeSelect
+                  value={taskStatus}
+                  onChange={(value) => setTaskStatus(value as Task['status'])}
+                  options={statusOptions}
+                />
               </>
             )}
           </>
@@ -181,22 +202,21 @@ const QuickActionModal = () => {
         {quickActionModal === 'invite' && (
           <>
             <input className="input-field" placeholder="Email address" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
-            <select className="input-field" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}>
-              <option>Member</option>
-              <option>Admin</option>
-              <option>Viewer</option>
-            </select>
+            <ThemeSelect
+              value={inviteRole}
+              onChange={(value) => setInviteRole(value as typeof inviteRole)}
+              options={[...inviteRoleOptions]}
+            />
           </>
         )}
         {quickActionModal === 'snippet' && (
           <>
             <input className="input-field" placeholder="Snippet title" value={snippetTitle} onChange={(e) => setSnippetTitle(e.target.value)} />
-            <select className="input-field" value={snippetLang} onChange={(e) => setSnippetLang(e.target.value)}>
-              <option>TypeScript</option>
-              <option>JavaScript</option>
-              <option>Python</option>
-              <option>CSS</option>
-            </select>
+            <ThemeSelect
+              value={snippetLang}
+              onChange={setSnippetLang}
+              options={snippetLangOptions}
+            />
             <textarea className="input-field" placeholder="Paste code…" rows={4} value={snippetCode} onChange={(e) => setSnippetCode(e.target.value)} />
           </>
         )}
