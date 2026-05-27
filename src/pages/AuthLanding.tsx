@@ -15,8 +15,8 @@ const AuthLanding: React.FC<{ verify?: boolean }> = ({ verify = false }) => {
   const ctx = useContext(AppContext);
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [email, setEmail] = useState('shwetha@devcollab.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -57,18 +57,18 @@ const AuthLanding: React.FC<{ verify?: boolean }> = ({ verify = false }) => {
       }
       if (mode === 'signup') {
         const result = await ctx.signUp(email, password, name || undefined);
-        if (result.demoOtp) {
-          sessionStorage.setItem('devcollab_demo_otp', result.demoOtp);
-          setDemoOtp(result.demoOtp);
+        if (!result.needsWorkspaceSetup) {
+          setWelcomeMsg(aiWelcome(name || email.split('@')[0]));
+          setTimeout(() => navigate('/dashboard'), 600);
         }
-        navigate('/verify');
         return;
       }
       if (mode === 'forgot') {
         ctx.showToast('If that email exists, a reset link was sent.');
         return;
       }
-      await ctx.signIn(email, password, rememberMe);
+      const loginResult = await ctx.signIn(email, password, rememberMe);
+      if (loginResult.needsWorkspaceSetup) return;
       setWelcomeMsg(aiWelcome(name || email.split('@')[0]));
       setTimeout(() => navigate('/dashboard'), 600);
     } catch (err) {
@@ -104,7 +104,7 @@ const AuthLanding: React.FC<{ verify?: boolean }> = ({ verify = false }) => {
             Projects, tasks, real-time collaboration, AI insights, and productivity tracking — all in one futuristic dashboard.
           </p>
           <p className="demo-hint">
-            Demo: shwetha@devcollab.io / password123
+            Use any email and password to log in. New accounts are created automatically.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {socialOptions.map((opt) => (

@@ -77,8 +77,8 @@ export type AppContextValue = {
   searchQuery: string;
   searchResults: SearchResult[];
   toast: string | null;
-  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<{ demoOtp?: string }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ needsWorkspaceSetup: boolean }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ needsWorkspaceSetup: boolean }>;
   signOut: () => void;
   socialLogin: (provider: string, email: string, rememberMe?: boolean) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
@@ -390,17 +390,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
-    const { token, user, workspaceId } = await api.login(email, password);
+    const { token, user, workspaceId, needsWorkspaceSetup } = await api.login(email, password);
     setToken(token);
     setAuth((prev) => ({ ...prev, rememberMe }));
+
+    if (needsWorkspaceSetup) {
+      setAuth((prev) => ({
+        ...prev,
+        user: user as UserProfile,
+        isAuthenticated: false,
+        currentWorkspaceId: '',
+        sessionActive: false,
+        rememberMe,
+        needsWorkspaceSetup: true,
+        pendingSignupEmail: email,
+      }));
+      return { needsWorkspaceSetup: true };
+    }
+
     const data = await api.bootstrap(workspaceId);
     applyBootstrap(data, rememberMe);
+    return { needsWorkspaceSetup: false };
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
     const result = await api.signup(email, password, name);
-    setAuth((prev) => ({ ...prev, pendingSignupEmail: email, isAuthenticated: false }));
-    return { demoOtp: result.demoOtp };
+    setToken(result.token);
+
+    if (result.needsWorkspaceSetup) {
+      setAuth({
+        user: result.user as UserProfile,
+        isAuthenticated: false,
+        currentWorkspaceId: '',
+        sessionActive: false,
+        rememberMe: false,
+        needsWorkspaceSetup: true,
+        pendingSignupEmail: email,
+      });
+      return { needsWorkspaceSetup: true };
+    }
+
+    const data = await api.bootstrap(result.workspaceId);
+    applyBootstrap(data, false);
+    return { needsWorkspaceSetup: false };
   };
 
   const socialLogin = async (provider: string, email: string, rememberMe = false) => {

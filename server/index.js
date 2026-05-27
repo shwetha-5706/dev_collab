@@ -33,6 +33,34 @@ function signToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 }
 
+function createUserRecord(d, { email, password, name, joinDefaultWorkspace = false }) {
+  const userId = uid('u');
+  const user = {
+    id: userId,
+    name: name || email.split('@')[0],
+    email,
+    avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(email)}`,
+    role: 'Member',
+    bio: 'DevCollab member.',
+    skills: [],
+    streak: 0,
+  };
+  d.users.push(user);
+  d.credentials.push({ userId, email, passwordHash: hashPassword(password || 'password') });
+  if (joinDefaultWorkspace) {
+    const ws = d.workspaces[0];
+    if (ws && !ws.memberIds.includes(userId)) {
+      ws.memberIds.push(userId);
+      d.memberRoles.push({ workspaceId: ws.id, userId, role: 'Member' });
+    }
+  }
+  return user;
+}
+
+function findWorkspaceForUser(db, userId) {
+  return db.workspaces.find((w) => w.memberIds.includes(userId));
+}
+
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -429,31 +457,72 @@ io.on('connection', (socket) => {
 
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  const db = readDb();
-  const cred = db.credentials.find((c) => c.email.toLowerCase() === email?.toLowerCase());
-  if (!cred || !verifyPassword(password ?? '', cred.passwordHash)) {
-    return res.status(401).json({ error: 'Invalid email or password' });
+  if (!email?.trim()) return res.status(400).json({ error: 'Email required' });
+
+  const normalizedEmail = email.trim().toLowerCase();
+  let db = readDb();
+  let cred = db.credentials.find((c) => c.email.toLowerCase() === normalizedEmail);
+
+  if (!cred) {
+    writeDb((d) => {
+      createUserRecord(d, {
+        email: normalizedEmail,
+        password: password ?? 'password',
+        joinDefaultWorkspace: true,
+      });
+      return d;
+    });
+    db = readDb();
+    cred = db.credentials.find((c) => c.email.toLowerCase() === normalizedEmail);
   }
+
   const user = getUser(db, cred.userId);
-  const workspace = db.workspaces.find((w) => w.memberIds.includes(user.id));
+  const workspace = findWorkspaceForUser(db, user.id);
   const token = signToken(user.id);
-  res.json({ token, user, workspaceId: workspace?.id ?? '' });
+  res.json({
+    token,
+    user,
+    workspaceId: workspace?.id ?? '',
+    needsWorkspaceSetup: !workspace,
+  });
 });
 
 app.post('/api/auth/signup', (req, res) => {
   const { email, password, name } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  if (!email?.trim() || !password) return res.status(400).json({ error: 'Email and password required' });
+
+  const normalizedEmail = email.trim().toLowerCase();
   const db = readDb();
-  if (db.credentials.some((c) => c.email.toLowerCase() === email.toLowerCase())) {
-    return res.status(409).json({ error: 'Email already registered' });
+  const existing = db.credentials.find((c) => c.email.toLowerCase() === normalizedEmail);
+  if (existing) {
+    const user = getUser(db, existing.userId);
+    const workspace = findWorkspaceForUser(db, user.id);
+    const token = signToken(user.id);
+    return res.json({
+      token,
+      user,
+      workspaceId: workspace?.id ?? '',
+      needsWorkspaceSetup: !workspace,
+      alreadyRegistered: true,
+    });
   }
-  const otp = String(Math.floor(100000 + Math.random() * 900000));
+
+  let userId;
   writeDb((d) => {
-    d.pendingSignups = d.pendingSignups.filter((p) => p.email !== email);
-    d.pendingSignups.push({ email, passwordHash: hashPassword(password), name: name || email.split('@')[0], otp, createdAt: Date.now() });
+    const user = createUserRecord(d, {
+      email: normalizedEmail,
+      password,
+      name: name?.trim(),
+      joinDefaultWorkspace: false,
+    });
+    userId = user.id;
     return d;
   });
-  res.json({ needsVerification: true, email, demoOtp: otp });
+
+  const fresh = readDb();
+  const user = getUser(fresh, userId);
+  const token = signToken(user.id);
+  res.json({ token, user, needsWorkspaceSetup: true });
 });
 
 app.post('/api/auth/verify-otp', (req, res) => {

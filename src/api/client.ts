@@ -37,13 +37,13 @@ export const api = {
   health: () => request<{ ok: boolean }>('/health'),
 
   login: (email: string, password: string) =>
-    request<{ token: string; user: unknown; workspaceId: string }>('/auth/login', {
+    request<{ token: string; user: unknown; workspaceId: string; needsWorkspaceSetup?: boolean }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
 
   signup: (email: string, password: string, name?: string) =>
-    request<{ needsVerification: boolean; email: string; demoOtp?: string }>('/auth/signup', {
+    request<{ token: string; user: unknown; needsWorkspaceSetup: boolean; workspaceId?: string; alreadyRegistered?: boolean }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     }),
