@@ -1,6 +1,12 @@
 import { apiUrl } from './config';
+import { mockLogin, mockSignUp, mockSocialLogin, generateMockBootstrapData, generateMockUser } from '../utils/mockAuth';
 
 const TOKEN_KEY = 'devcollab_token';
+
+// ─── Development Mode Flag ──────────────────────────────────────────────────
+// Set this to true to enable mock authentication (accepts any email/password)
+// This is TEMPORARY for development/demo only
+const DEV_MODE = false;
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -11,7 +17,7 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
     super(message);
@@ -36,29 +42,56 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean }>('/health'),
 
-  login: (email: string, password: string) =>
-    request<{ token: string; user: unknown; workspaceId: string; needsWorkspaceSetup?: boolean }>('/auth/login', {
+  login: (email: string, password: string) => {
+    if (DEV_MODE) {
+      return Promise.resolve(mockLogin(email, password));
+    }
+    return request<{ token: string; user: unknown; workspaceId: string; needsWorkspaceSetup?: boolean }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
+    });
+  },
 
-  signup: (email: string, password: string, name?: string) =>
-    request<{ token: string; user: unknown; needsWorkspaceSetup: boolean; workspaceId?: string; alreadyRegistered?: boolean }>('/auth/signup', {
+  signup: (email: string, password: string, name?: string) => {
+    if (DEV_MODE) {
+      return Promise.resolve({
+        token: mockSignUp(email, password, name).token,
+        user: mockSignUp(email, password, name).user,
+        needsWorkspaceSetup: false,
+        workspaceId: mockSignUp(email, password, name).workspaceId,
+        alreadyRegistered: false,
+      });
+    }
+    return request<{ token: string; user: unknown; needsWorkspaceSetup: boolean; workspaceId?: string; alreadyRegistered?: boolean }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
-    }),
+    });
+  },
 
-  verifyOtp: (email: string, otp: string) =>
-    request<{ token: string; user: unknown; needsWorkspaceSetup: boolean }>('/auth/verify-otp', {
+  verifyOtp: (email: string, otp: string) => {
+    if (DEV_MODE) {
+      const user = generateMockUser(email);
+      return Promise.resolve({
+        token: mockSignUp(email, 'dev-password').token,
+        user,
+        needsWorkspaceSetup: false,
+      });
+    }
+    return request<{ token: string; user: unknown; needsWorkspaceSetup: boolean }>('/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ email, otp }),
-    }),
+    });
+  },
 
-  socialLogin: (provider: string, email: string) =>
-    request<{ token: string; user: unknown; workspaceId: string }>('/auth/social-login', {
+  socialLogin: (provider: string, email: string) => {
+    if (DEV_MODE) {
+      return Promise.resolve(mockSocialLogin(provider, email));
+    }
+    return request<{ token: string; user: unknown; workspaceId: string }>('/auth/social-login', {
       method: 'POST',
       body: JSON.stringify({ provider, email }),
-    }),
+    });
+  },
 
   forgotPassword: (email: string) =>
     request<{ message: string }>('/auth/forgot-password', {
@@ -66,8 +99,25 @@ export const api = {
       body: JSON.stringify({ email }),
     }),
 
-  bootstrap: (workspaceId?: string) =>
-    request<BootstrapPayload>(`/bootstrap${workspaceId ? `?workspaceId=${workspaceId}` : ''}`),
+  bootstrap: (workspaceId?: string) => {
+    if (DEV_MODE) {
+      // Create a mock user from the token or use a default
+      const token = getToken();
+      let email = 'demo@devcollab.io';
+      if (token) {
+        try {
+          const payload = token.split('.')[1];
+          const decoded = JSON.parse(atob(payload));
+          email = decoded.email || email;
+        } catch {
+          // Fallback to default email
+        }
+      }
+      const user = generateMockUser(email);
+      return Promise.resolve(generateMockBootstrapData(user, workspaceId));
+    }
+    return request<BootstrapPayload>(`/bootstrap${workspaceId ? `?workspaceId=${workspaceId}` : ''}`);
+  },
 
   createWorkspace: (name: string, description: string, type: string) =>
     request<BootstrapPayload>('/workspaces', {
@@ -232,5 +282,3 @@ export type BootstrapPayload = {
   };
   subscription?: import('../types').SubscriptionPlan;
 };
-
-export { ApiError };

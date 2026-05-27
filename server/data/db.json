@@ -62,6 +62,16 @@
         "CI/CD"
       ],
       "streak": 5
+    },
+    {
+      "id": "u-1779880144353-onycd",
+      "name": "testdemo",
+      "email": "testdemo@gmail.com",
+      "avatar": "https://i.pravatar.cc/150?u=testdemo%40gmail.com",
+      "role": "Member",
+      "bio": "DevCollab member.",
+      "skills": [],
+      "streak": 0
     }
   ],
   "credentials": [
@@ -84,6 +94,11 @@
       "userId": "u-04",
       "email": "arjun@devcollab.io",
       "passwordHash": "ba977b2b8803f4fca3b3dc86856c8edb:67d9e68e9ca391710cb4d91ceeb5c51c4611a9c5f95ea9c44f34c6395238a300d498ab748954c3233e548148a2be1b6178a66fccd379f968dbf9de77a8887278"
+    },
+    {
+      "userId": "u-1779880144353-onycd",
+      "email": "testdemo@gmail.com",
+      "passwordHash": "2cc517bdd05eb8e7b8a23eb4ff29a8fe:2bdd76852382bf92b59d61b1363100444f51f47a4807c30277740be729884c6474f7f9421d8858fbefc727e3e775aee6653070ccf568ea93108bf89759a0d8cb"
     }
   ],
   "pendingSignups": [],
@@ -98,7 +113,8 @@
         "u-01",
         "u-02",
         "u-03",
-        "u-04"
+        "u-04",
+        "u-1779880144353-onycd"
       ],
       "settings": {
         "allowInvites": true,
@@ -194,6 +210,11 @@
       "workspaceId": "ws-103",
       "userId": "u-04",
       "role": "Member"
+    },
+    {
+      "workspaceId": "ws-101",
+      "userId": "u-1779880144353-onycd",
+      "role": "Member"
     }
   ],
   "projects": [
@@ -213,7 +234,7 @@
       "health": 15,
       "progress": 0,
       "visibility": "Public",
-      "openTasks": 4,
+      "openTasks": 5,
       "riskLevel": "low"
     },
     {
@@ -596,6 +617,27 @@
       "subtasks": [],
       "checklist": [],
       "attachments": []
+    },
+    {
+      "id": "t-1779880004220-u7jqu",
+      "projectId": "p-11",
+      "title": "Backend-Frontend Integration Test",
+      "description": "",
+      "status": "To Do",
+      "priority": "P2",
+      "dueDate": "2026-05-27",
+      "labels": [],
+      "assigneeIds": [
+        "u-01"
+      ],
+      "estimate": "2h",
+      "comments": [],
+      "history": [
+        "Created by Shwetha"
+      ],
+      "subtasks": [],
+      "checklist": [],
+      "attachments": []
     }
   ],
   "snippets": [
@@ -785,6 +827,15 @@
     }
   ],
   "activities": [
+    {
+      "id": "a-1779880004221-6j9on",
+      "workspaceId": "ws-101",
+      "user": "Shwetha",
+      "message": "created task \"Backend-Frontend Integration Test\"",
+      "timestamp": "Just now",
+      "type": "task",
+      "project": "DevCollab Dashboard"
+    },
     {
       "id": "a-1779858080820-7vkk6",
       "workspaceId": "ws-103",
