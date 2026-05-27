@@ -31,7 +31,7 @@ const ThemeSelect = ({ value, onChange, options, className, placeholder = 'Selec
   }, [open]);
 
   return (
-    <div className={`theme-select ${className ?? ''}`} ref={ref}>
+    <div className={`theme-select ${open ? 'open' : ''} ${className ?? ''}`} ref={ref}>
       <button
         type="button"
         className="theme-select-trigger input-field"
@@ -43,13 +43,24 @@ const ThemeSelect = ({ value, onChange, options, className, placeholder = 'Selec
         <ChevronDownIcon className={`theme-select-chevron ${open ? 'open' : ''}`} aria-hidden />
       </button>
       {open && (
-        <ul className="theme-select-menu glass" role="listbox">
+        <ul
+          className="theme-select-menu glass"
+          role="listbox"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           {options.map((opt) => (
             <li key={opt.value} role="option" aria-selected={opt.value === value}>
               <button
                 type="button"
                 className={`theme-select-option ${opt.value === value ? 'active' : ''}`}
-                onClick={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onChange(opt.value);
                   setOpen(false);
                 }}

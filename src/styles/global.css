@@ -242,6 +242,10 @@ select.input-field option:checked {
   width: 100%;
 }
 
+.theme-select.open {
+  z-index: 20;
+}
+
 .theme-select-trigger {
   display: flex;
   align-items: center;
@@ -281,9 +285,10 @@ select.input-field option:checked {
   padding: 6px;
   list-style: none;
   border-radius: 14px;
-  z-index: 300;
+  z-index: 400;
   max-height: 220px;
   overflow-y: auto;
+  box-shadow: var(--shadow-glass);
 }
 
 .theme-select-option {

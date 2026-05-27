@@ -31,23 +31,15 @@ const QuickActionModal = () => {
   const [reportPreview, setReportPreview] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!ctx) return null;
-  const {
-    quickActionModal,
-    quickActionProjectId,
-    setQuickActionModal,
-    createTask,
-    createProject,
-    inviteMember,
-    createSnippet,
-    createDoc,
-    generateAIReport,
-    projects,
-    activeWorkspace,
-    showToast,
-  } = ctx;
+  const projects = ctx?.projects ?? [];
+  const activeWorkspace = ctx?.activeWorkspace;
+  const quickActionModal = ctx?.quickActionModal ?? null;
+  const quickActionProjectId = ctx?.quickActionProjectId ?? null;
 
-  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspace?.id);
+  const workspaceProjects = useMemo(
+    () => projects.filter((p) => p.workspaceId === activeWorkspace?.id),
+    [projects, activeWorkspace?.id]
+  );
 
   const projectOptions = useMemo(
     () => workspaceProjects.map((p) => ({ value: p.id, label: p.name })),
@@ -75,12 +67,28 @@ const QuickActionModal = () => {
   ];
 
   useEffect(() => {
-    if (!quickActionModal) return;
-    const preferred = quickActionProjectId && workspaceProjects.some((p) => p.id === quickActionProjectId)
-      ? quickActionProjectId
-      : workspaceProjects[0]?.id ?? '';
-    setTaskProjectId(preferred);
+    if (quickActionModal !== 'task' || workspaceProjects.length === 0) return;
+
+    setTaskProjectId((current) => {
+      if (current && workspaceProjects.some((p) => p.id === current)) return current;
+      if (quickActionProjectId && workspaceProjects.some((p) => p.id === quickActionProjectId)) {
+        return quickActionProjectId;
+      }
+      return workspaceProjects[0]?.id ?? '';
+    });
   }, [quickActionModal, quickActionProjectId, workspaceProjects]);
+
+  if (!ctx) return null;
+  const {
+    setQuickActionModal,
+    createTask,
+    createProject,
+    inviteMember,
+    createSnippet,
+    createDoc,
+    generateAIReport,
+    showToast,
+  } = ctx;
 
   if (!quickActionModal) return null;
 
